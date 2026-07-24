@@ -339,5 +339,11 @@ export default [
   "balkaninsight.com",
   "www.war.gov",
   "www.thenationalnews.com",
-  "trumpstruth.org"
+  "trumpstruth.org",
+  "www.bankinfosecurity.com",
+  "www.govinfosecurity.com",
+  "www.pymnts.com",
+  "www.paymentsdive.com",
+  "www.finextra.com",
+  "www.moneylaundering.com"
 ];
