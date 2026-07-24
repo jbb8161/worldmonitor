@@ -2,6 +2,7 @@ import type { Feed } from '@/types';
 import { SITE_VARIANT } from './variant';
 import { rssProxyUrl } from '@/utils';
 import { mergeCanonicalFeeds } from './feed-resolution';
+import { ICOUNTER_FEED_ADDITIONS } from './icounter-feeds-additions';
 
 const rss = rssProxyUrl;
 const railwayRss = rssProxyUrl;
@@ -992,6 +993,15 @@ const ENERGY_FEEDS: Record<string, Feed[]> = {
   ],
 };
 
+// AUSPEX variant feeds — cybersecurity, fintech, crypto/stablecoin, and
+// cyber-/AI-enabled fraud intelligence. Base is TECH_FEEDS plus the
+// icounter fraud/fintech categories (fraud, fraudVectors, cryptoFraud,
+// aiFraud) merged in — see icounter-feeds-additions.ts.
+const AUSPEX_FEEDS: Record<string, Feed[]> = {
+  ...TECH_FEEDS,
+  ...ICOUNTER_FEED_ADDITIONS,
+};
+
 // Variant-aware exports
 export const FEEDS = SITE_VARIANT === 'tech'
   ? TECH_FEEDS
@@ -1003,7 +1013,9 @@ export const FEEDS = SITE_VARIANT === 'tech'
         ? COMMODITY_FEEDS
         : SITE_VARIANT === 'energy'
           ? ENERGY_FEEDS
-          : FULL_FEEDS;
+          : SITE_VARIANT === 'auspex'
+            ? AUSPEX_FEEDS
+            : FULL_FEEDS;
 
 // Canonical category→feeds map: the union of every variant's feed set.
 // `FEEDS` (above) is just the active variant's PRESET; users freely customize
@@ -1019,6 +1031,7 @@ export const CANONICAL_FEEDS: Record<string, Feed[]> = mergeCanonicalFeeds([
   COMMODITY_FEEDS,
   ENERGY_FEEDS,
   HAPPY_FEEDS,
+  AUSPEX_FEEDS,
 ]);
 
 export const SOURCE_REGION_MAP: Record<string, { labelKey: string; feedKeys: string[] }> = {
@@ -1052,6 +1065,11 @@ export const SOURCE_REGION_MAP: Record<string, { labelKey: string; feedKeys: str
   dealsCorpFin: { labelKey: 'header.sourceRegionDeals', feedKeys: ['institutional', 'derivatives'] },
   finRegulation: { labelKey: 'header.sourceRegionFinRegulation', feedKeys: ['fin-regulation'] },
   gulfMena: { labelKey: 'header.sourceRegionGulfMena', feedKeys: ['gccNews'] },
+
+  // AUSPEX variant regions (cyber-enabled / crypto / AI-enabled fraud)
+  fraudWatch: { labelKey: 'header.sourceRegionFraudWatch', feedKeys: ['fraud', 'fraudVectors'] },
+  cryptoFraudWatch: { labelKey: 'header.sourceRegionCryptoFraudWatch', feedKeys: ['cryptoFraud'] },
+  aiFraudWatch: { labelKey: 'header.sourceRegionAiFraudWatch', feedKeys: ['aiFraud'] },
 };
 
 export const INTEL_SOURCES: Feed[] = [

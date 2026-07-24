@@ -3,7 +3,7 @@ import type { MapLayers } from '@/types';
 import { isDesktopRuntime } from '@/services/runtime';
 
 export type MapRenderer = 'flat' | 'globe';
-export type MapVariant = 'full' | 'tech' | 'finance' | 'happy' | 'commodity' | 'energy';
+export type MapVariant = 'full' | 'tech' | 'finance' | 'happy' | 'commodity' | 'energy' | 'auspex';
 
 const _desktop = isDesktopRuntime();
 
@@ -329,6 +329,12 @@ const VARIANT_LAYER_ORDER: Record<MapVariant, Array<keyof MapLayers>> = {
     // Energy-adjacent context
     'sanctions', 'fires', 'climate', 'weather', 'outages', 'natural',
     'resilienceScore', 'dayNight',
+  ],
+  auspex: [
+    // Mirror of tech — AUSPEX_MAP_LAYERS in panels.ts is a copy of TECH_MAP_LAYERS.
+    'startupHubs', 'techHQs', 'accelerators', 'cloudRegions',
+    'datacenters', 'cables', 'outages', 'cyberThreats',
+    'techEvents', 'resilienceScore', 'natural', 'fires', 'dayNight',
   ],
 };
 

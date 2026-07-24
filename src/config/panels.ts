@@ -1096,10 +1096,31 @@ const ENERGY_MOBILE_MAP_LAYERS: MapLayers = {
 };
 
 // ============================================
+// AUSPEX VARIANT (Cybersecurity, fintech, crypto & fraud intelligence)
+// ============================================
+// Base is TECH_PANELS + the icounter fraud/fintech panel additions, inlined
+// (rather than imported) so this module stays free of the '@/utils' →
+// src/utils/proxy.ts dependency chain — proxy.ts reads `import.meta.env` at
+// module scope, which is undefined outside a Vite context and crashes any
+// node:test file that imports panels.ts directly (e.g.
+// tests/panel-variant-config.test.mts). Keep in sync with
+// ICOUNTER_PANEL_ADDITIONS in icounter-feeds-additions.ts.
+const AUSPEX_PANELS: Record<string, PanelConfig> = {
+  ...TECH_PANELS,
+  fraud: { name: 'Cyber-Enabled Fraud', enabled: true, priority: 1 },
+  fraudVectors: { name: 'Fraud Scenario Watch', enabled: true, priority: 1 },
+  cryptoFraud: { name: 'Crypto & Stablecoin Fraud', enabled: true, priority: 1 },
+  aiFraud: { name: 'AI-Enabled Fraud', enabled: true, priority: 1 },
+};
+
+const AUSPEX_MAP_LAYERS: MapLayers = { ...TECH_MAP_LAYERS };
+const AUSPEX_MOBILE_MAP_LAYERS: MapLayers = { ...TECH_MOBILE_MAP_LAYERS };
+
+// ============================================
 // UNIFIED PANEL REGISTRY
 // ============================================
 
-type PanelVariant = 'full' | 'tech' | 'finance' | 'commodity' | 'energy' | 'happy';
+type PanelVariant = 'full' | 'tech' | 'finance' | 'commodity' | 'energy' | 'happy' | 'auspex';
 
 const VARIANT_PANEL_CONFIGS: Record<PanelVariant, Record<string, PanelConfig>> = {
   full: FULL_PANELS,
@@ -1108,6 +1129,7 @@ const VARIANT_PANEL_CONFIGS: Record<PanelVariant, Record<string, PanelConfig>> =
   commodity: COMMODITY_PANELS,
   energy: ENERGY_PANELS,
   happy: HAPPY_PANELS,
+  auspex: AUSPEX_PANELS,
 };
 
 function getVariantPanelConfigs(variant: string): Record<string, PanelConfig> | undefined {
@@ -1124,6 +1146,7 @@ export const ALL_PANELS: Record<string, PanelConfig> = {
   ...TECH_PANELS,
   ...FINANCE_PANELS,
   ...FULL_PANELS,
+  ...AUSPEX_PANELS,
 };
 
 /** Per-variant canonical panel order (keys = which panels are enabled by default). */
@@ -1134,6 +1157,7 @@ export const VARIANT_DEFAULTS: Record<string, string[]> = {
   commodity: Object.keys(VARIANT_PANEL_CONFIGS.commodity),
   energy:    Object.keys(VARIANT_PANEL_CONFIGS.energy),
   happy:     Object.keys(VARIANT_PANEL_CONFIGS.happy),
+  auspex:    Object.keys(VARIANT_PANEL_CONFIGS.auspex),
 };
 
 /**
@@ -1163,6 +1187,11 @@ export const VARIANT_PANEL_OVERRIDES: Partial<Record<string, Partial<Record<stri
   },
   happy: {
     map:         { name: 'World Map' },
+  },
+  auspex: {
+    map:         { name: 'Global Fraud Map' },
+    'live-news': { name: 'AUSPEX Headlines' },
+    insights:    { name: 'AI Fraud Insights' },
   },
 };
 
@@ -1303,7 +1332,9 @@ export const DEFAULT_MAP_LAYERS = SITE_VARIANT === 'happy'
         ? COMMODITY_MAP_LAYERS
         : SITE_VARIANT === 'energy'
           ? ENERGY_MAP_LAYERS
-          : FULL_MAP_LAYERS;
+          : SITE_VARIANT === 'auspex'
+            ? AUSPEX_MAP_LAYERS
+            : FULL_MAP_LAYERS;
 
 export const MOBILE_DEFAULT_MAP_LAYERS = SITE_VARIANT === 'happy'
   ? HAPPY_MOBILE_MAP_LAYERS
@@ -1315,7 +1346,9 @@ export const MOBILE_DEFAULT_MAP_LAYERS = SITE_VARIANT === 'happy'
         ? COMMODITY_MOBILE_MAP_LAYERS
         : SITE_VARIANT === 'energy'
           ? ENERGY_MOBILE_MAP_LAYERS
-          : FULL_MOBILE_MAP_LAYERS;
+          : SITE_VARIANT === 'auspex'
+            ? AUSPEX_MOBILE_MAP_LAYERS
+            : FULL_MOBILE_MAP_LAYERS;
 
 /** Maps map-layer toggle keys to their data-freshness source IDs (single source of truth). */
 export const LAYER_TO_SOURCE: Partial<Record<keyof MapLayers, DataSourceId[]>> = {
