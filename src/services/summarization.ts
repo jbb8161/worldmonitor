@@ -53,7 +53,14 @@ export interface SummarizeOptions {
 
 // ── Sebuf client (replaces direct fetch to /api/{provider}-summarize) ──
 
-const newsClient = new NewsServiceClient(getRpcBaseUrl(), { fetch: (...args) => globalThis.fetch(...args) });
+// Exported for src/services/auspex-briefing.ts: the AUSPEX Briefing's content-
+// angle generation is a variant/deployment-config-gated server path (see
+// summarize-article.ts's requiresPremium check), not a caller-identity one,
+// so it dispatches via this plain client the same way translateText() does —
+// deliberately bypassing the premium entitlement gate below, not routing
+// through it. Read-only re-export; behavior for every existing caller here is
+// unchanged.
+export const newsClient = new NewsServiceClient(getRpcBaseUrl(), { fetch: (...args) => globalThis.fetch(...args) });
 const premiumNewsClient = new NewsServiceClient(getRpcBaseUrl(), {
   fetch: async (input, init) => {
     const response = await premiumFetch(input, { ...init, forcePremium: true });
@@ -93,7 +100,7 @@ const emptySummaryFallback: SummarizeArticleResponse = { summary: '', provider: 
 
 // ── Provider definitions ──
 
-interface ApiProviderDef {
+export interface ApiProviderDef {
   featureId: RuntimeFeatureId;
   provider: SummarizationProvider;
   label: string;
@@ -102,7 +109,10 @@ interface ApiProviderDef {
 // Order matches the server's default chain since #4944: OpenRouter
 // (DeepSeek V4 Flash) ahead of Groq — the RPC honors the client-supplied
 // provider, so the client's try-order decides which model summarizes.
-const API_PROVIDERS: ApiProviderDef[] = [
+// Exported for src/services/auspex-briefing.ts — see the newsClient export
+// comment above for why the Briefing dispatches providers directly instead
+// of going through tryApiProvider().
+export const API_PROVIDERS: ApiProviderDef[] = [
   { featureId: 'aiOllama',      provider: 'ollama',     label: 'Ollama' },
   { featureId: 'aiOpenRouter',  provider: 'openrouter', label: 'OpenRouter' },
   { featureId: 'aiGroq',        provider: 'groq',       label: 'Groq AI' },

@@ -326,6 +326,36 @@ subsequent requests through; a forged/invalid cookie is rejected; and
 `/api/mcp` all pass through with no session and no password, even with the
 gate fully configured.
 
+### 🤖 Getting real AI content angles on the Briefing view
+
+The Briefing's suggested content angle per story reuses the same
+`summarize-article` RPC and Ollama → OpenRouter → Groq → browser-T5
+provider chain the rest of the app uses. Since `auspex` has no
+Clerk/Convex billing account to speak of, the RPC's premium check is
+bypassed automatically for `auspex` requests *when your
+deployment has neither `CLERK_SECRET_KEY` nor a configured Convex
+entitlement backend (`CONVEX_SITE_URL` + `CONVEX_SERVER_SHARED_SECRET`) set*
+— true for essentially every self-hosted `auspex` install. That only
+removes the auth requirement; a provider still needs real credentials
+behind it, or every angle falls back to the on-device browser T5 model
+(functional, but much weaker than a real LLM):
+
+- **Docker/self-hosted with your own LLM:** set `OLLAMA_API_URL` (see
+  [Self-Hosted LLM](#self-hosted-llm) below) — reachable because the
+  sidecar sets `LOCAL_API_MODE`, which lifts the localhost-only allowlist
+  `getProviderCredentials()` otherwise enforces for the `ollama` provider.
+- **Deployed on Vercel (no Docker sidecar):** `OLLAMA_API_URL` is only
+  ever allowed to point at `localhost`/`127.0.0.1`/`host.docker.internal`
+  outside a Docker/desktop deployment (`server/_shared/llm.ts`'s
+  `OLLAMA_HOST_ALLOWLIST`) — a Vercel function cannot reach an Ollama
+  instance running on your own machine or network through that
+  allowlist, so `ollama` will always be skipped there regardless of the
+  premium-gate fix. Set **`OPENROUTER_API_KEY`** (tried first after
+  Ollama in the client's provider order — cheap DeepSeek V4 Flash) or
+  **`GROQ_API_KEY`** as a Vercel project environment variable instead;
+  either one alone is enough for `generateSummary()` to produce a real
+  synthesized angle instead of falling through to browser T5.
+
 ## 🌐 Connecting to External Infrastructure
 
 ### Shared Redis (optional)
