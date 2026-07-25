@@ -1013,6 +1013,7 @@ const {
   hardware: _auspexDropHardware,
   cloud: _auspexDropCloud,
   dev: _auspexDropDev,
+  ipo: _auspexDropIpo,
   ...AUSPEX_TECH_FEEDS_BASE
 } = TECH_FEEDS;
 

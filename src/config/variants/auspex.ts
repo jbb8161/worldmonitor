@@ -3,7 +3,7 @@
 // merged with the icounter fraud/fintech feed additions, and stripped of
 // tech.ts's startup/VC-ecosystem categories (startups, vcblogs,
 // regionalStartups, unicorns, accelerators, producthunt, hardware, cloud,
-// dev, layoffs) — noise for a fraud/fintech GTM audience.
+// dev, layoffs) plus ipo — noise for a fraud/fintech GTM audience.
 import type { PanelConfig, MapLayers } from '@/types';
 import type { VariantConfig } from './base';
 
@@ -87,12 +87,6 @@ export const FEEDS: Record<string, Feed[]> = {
     { name: 'MarketWatch Tech', url: rss('https://news.google.com/rss/search?q=site:marketwatch.com+technology+markets+when:2d&hl=en-US&gl=US&ceid=US:en') },
     { name: 'Yahoo Finance', url: rss('https://finance.yahoo.com/rss/topstories') },
     { name: 'Seeking Alpha Tech', url: rss('https://seekingalpha.com/market_currents.xml') },
-  ],
-
-  // IPO & SPAC
-  ipo: [
-    { name: 'IPO News', url: rss('https://news.google.com/rss/search?q=(IPO+OR+"initial+public+offering"+OR+SPAC)+tech+when:7d&hl=en-US&gl=US&ceid=US:en') },
-    { name: 'Tech IPO News', url: rss('https://news.google.com/rss/search?q=tech+IPO+OR+"tech+company"+IPO+when:7d&hl=en-US&gl=US&ceid=US:en') },
   ],
 
   // Cyber-enabled fraud, crypto/stablecoin fraud, and AI-enabled fraud

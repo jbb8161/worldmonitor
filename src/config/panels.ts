@@ -1123,6 +1123,7 @@ const {
   'global-procurement': _auspexDropGlobalProcurementPanel,
   'airline-intel': _auspexDropAirlineIntelPanel,
   'tech-readiness': _auspexDropTechReadinessPanel,
+  ipo: _auspexDropIpoPanel,
   ...AUSPEX_TECH_PANELS_BASE
 } = TECH_PANELS;
 
