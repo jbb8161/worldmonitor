@@ -44,13 +44,13 @@ import type {
   McpHandlerDeps,
   PublicResourceDef,
   TemplateResourceDef,
-} from '../types';
-import { dispatchToolsCall } from '../dispatch';
-import { evaluateFreshness } from '../freshness';
-import { rpcError, rpcOk, withMcpNoStore } from '../rpc';
+} from '../_types';
+import { dispatchToolsCall } from '../_dispatch';
+import { evaluateFreshness } from '../_freshness';
+import { rpcError, rpcOk, withMcpNoStore } from '../_rpc';
 // @ts-expect-error — JS module, no declaration file
 import { readJsonFromUpstash } from '../../_upstash-json.js';
-import { CHOKEPOINT_SLUGS } from './slugs';
+import { CHOKEPOINT_SLUGS } from './_slugs';
 
 // ---------------------------------------------------------------------------
 // Public resource freshness reader

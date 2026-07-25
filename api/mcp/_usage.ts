@@ -26,7 +26,7 @@ import {
   type WaitUntilCtx,
 } from '../../server/_shared/usage';
 import type { AuthKind } from '../../server/_shared/usage-identity';
-import type { McpAuthContext } from './types';
+import type { McpAuthContext } from './_types';
 
 // Which stage of the /mcp funnel produced the terminal Response. Set by the
 // handler at each return site; combined with the HTTP status it maps onto the

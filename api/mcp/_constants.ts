@@ -153,7 +153,7 @@ export const SERVER_NAME = 'worldmonitor';
 //       worldmonitor://seed-meta/freshness
 //       worldmonitor://markets/{symbol}/quote
 //     Chokepoint slugs are pinned in a hand-curated kebab-case table
-//     (api/mcp/resources/slugs.ts) so a cache refresh / upstream rename
+//     (api/mcp/resources/_slugs.ts) so a cache refresh / upstream rename
 //     never breaks a bookmarked URI.
 //   - Auth-symmetric: resources/read routes through dispatchToolsCall and
 //     inherits the Pro daily-quota reservation identical to the equivalent
@@ -272,7 +272,7 @@ export const SERVER_NAME = 'worldmonitor';
 //       * ui://worldmonitor/chokepoint-monitor.html (get_chokepoint_status)
 //     Each is linked from its backing tool via `_meta.ui.resourceUri` (+ the
 //     deprecated flat `ui/resourceUri` alias) and registered in
-//     api/mcp/ui/registry.ts. A shared shell (api/mcp/ui/shell.ts) factors the
+//     api/mcp/ui/_registry.ts. A shared shell (api/mcp/ui/_shell.ts) factors the
 //     DOCTYPE / 4-category CSP / dark-mode tokens / postMessage bridge so the
 //     fleet can't drift on the orank quality/CSP signals. resources/read of a
 //     ui:// URI stays public + quota-exempt (static, data-free template); DATA
@@ -288,7 +288,7 @@ export const SERVER_NAME = 'worldmonitor';
 //       * ui://worldmonitor/natural-disasters.html   (get_natural_disasters)
 //       * ui://worldmonitor/prediction-markets.html  (get_prediction_markets)
 //       * ui://worldmonitor/forecasts.html           (get_forecast_predictions)
-//     Each renders through the shared shell (api/mcp/ui/shell.ts) and links from
+//     Each renders through the shared shell (api/mcp/ui/_shell.ts) and links from
 //     its backing cache tool via `_meta.ui.resourceUri`. Purely additive: `_meta`
 //     appears on five newly-linked tools; every ui:// read stays anonymously
 //     servable, quota-exempt, and data-free. No input/output schema, envelope,

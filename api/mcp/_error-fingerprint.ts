@@ -12,7 +12,7 @@
  *
  * Signature derivation:
  *  - Sibling-fetch failures are thrown as `<inner-endpoint> HTTP <status>`
- *    (see api/mcp/registry/rpc-tools.ts). Key on `<endpoint>:<status>` and drop
+ *    (see api/mcp/registry/_rpc-tools.ts). Key on `<endpoint>:<status>` and drop
  *    any trailing `: <reason>` so `HTTP 401` and
  *    `HTTP 401: invalid_internal_mcp_signature` coalesce into one group rather
  *    than fragmenting on the variable reason token.

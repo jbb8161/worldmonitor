@@ -283,7 +283,7 @@ For per-tool parameters, freshness budgets, timeouts, and concrete `curl` exampl
 
 ## API coverage
 
-An API endpoint is **MCP-exposed** only when the exact `METHOD /api/...` path is declared in a tool's registry `_apiPaths` entry. The table below is the human-facing rendering of those declarations from `api/mcp/registry/cache-tools.ts` and `api/mcp/registry/rpc-tools.ts`; it is narrower than the public OpenAPI catalog.
+An API endpoint is **MCP-exposed** only when the exact `METHOD /api/...` path is declared in a tool's registry `_apiPaths` entry. The table below is the human-facing rendering of those declarations from `api/mcp/registry/_cache-tools.ts` and `api/mcp/registry/_rpc-tools.ts`; it is narrower than the public OpenAPI catalog.
 
 A REST route can exist in OpenAPI and still be REST-only. The parity test keeps that distinction explicit: every public OpenAPI operation must either appear in `_apiPaths` or be listed in `tests/mcp-api-parity.test.mjs` with a categorized exclusion reason.
 
@@ -300,7 +300,7 @@ Reverse lookup workflow:
 1. Copy the exact method and path from the OpenAPI page, for example `GET /api/research/v1/list-tech-events`.
 2. Search this table. If the route appears, call the listed MCP tool.
 3. If it does not appear, the REST route is not exposed through MCP as an API-equivalent path. A cache-only MCP tool may still return related domain data, but it is not claiming that REST route.
-4. For code-level verification, search `_apiPaths` in `api/mcp/registry/cache-tools.ts` and `api/mcp/registry/rpc-tools.ts`; the parity test explains intentional REST-only exclusions.
+4. For code-level verification, search `_apiPaths` in `api/mcp/registry/_cache-tools.ts` and `api/mcp/registry/_rpc-tools.ts`; the parity test explains intentional REST-only exclusions.
 
 | MCP tool | API endpoints served |
 |----------|---------------------|

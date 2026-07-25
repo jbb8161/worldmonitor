@@ -9,9 +9,9 @@ const HERE = dirname(fileURLToPath(import.meta.url));
 // source-text greps (cabin_class fix shape, conditional-spread anti-pattern
 // audit, DEFAULT_LIST_LIMIT cache-tool audit) operate on the same byte
 // surface they did before the split.
-const MCP_SRC = readFileSync(resolve(HERE, '../api/mcp/registry/cache-tools.ts'), 'utf8')
+const MCP_SRC = readFileSync(resolve(HERE, '../api/mcp/registry/_cache-tools.ts'), 'utf8')
   + '\n'
-  + readFileSync(resolve(HERE, '../api/mcp/registry/rpc-tools.ts'), 'utf8');
+  + readFileSync(resolve(HERE, '../api/mcp/registry/_rpc-tools.ts'), 'utf8');
 const ENV_EXAMPLE = readFileSync(resolve(HERE, '../.env.example'), 'utf8');
 
 /**

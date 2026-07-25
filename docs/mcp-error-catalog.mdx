@@ -8,19 +8,19 @@ description: "Every error shape the World Monitor MCP server emits — JSON-RPC 
   Every code/envelope in this page should resolve to a line below; every
   emission site below should appear in the page.
 
-  - JSON-RPC envelope helpers           api/mcp/rpc.ts (rpcOk, rpcError)
-  - Method gate (405 + Allow)           api/mcp/handler.ts (mcpHandler method check)
-  - Top-level dispatch / -32600/-32601  api/mcp/handler.ts (POST body parse and dispatch switch)
-  - Auth -32001 / -32603 emitters       api/mcp/auth.ts (resolveAuthContext and entitlement checks)
-  - Billing -32002 / -32603 denials     api/mcp/auth.ts (getMcpBillingVerificationDenial) + api/mcp/dispatch.ts (BillingDenialError re-emit)
-  - Per-minute -32029 + hit telemetry   api/mcp/auth.ts (applyPerMinuteLimit, applyAnonDiscoveryLimit, emitMcpRateLimitHit)
-  - Pro daily-cap -32029 (HTTP 429)     api/mcp/dispatch.ts (reserveDailyQuotaForRequest)
-  - Tool exec -32603                    api/mcp/dispatch.ts (dispatchToolsCall)
-  - _budget_exceeded envelope           api/mcp/dispatch.ts (budget cap handling)
-  - _jmespath_error envelope            api/mcp/jmespath.ts (applyJmespath)
-  - JMESPath caps                       api/mcp/constants.ts (JMESPATH_LIMITS)
-  - Prompts -32602                      api/mcp/prompts/index.ts (listPrompts, getPrompt)
-  - Resources -32602 / -32603           api/mcp/resources/index.ts (listResources, readResource)
+  - JSON-RPC envelope helpers           api/mcp/_rpc.ts (rpcOk, rpcError)
+  - Method gate (405 + Allow)           api/mcp/_handler.ts (mcpHandler method check)
+  - Top-level dispatch / -32600/-32601  api/mcp/_handler.ts (POST body parse and dispatch switch)
+  - Auth -32001 / -32603 emitters       api/mcp/_auth.ts (resolveAuthContext and entitlement checks)
+  - Billing -32002 / -32603 denials     api/mcp/_auth.ts (getMcpBillingVerificationDenial) + api/mcp/_dispatch.ts (BillingDenialError re-emit)
+  - Per-minute -32029 + hit telemetry   api/mcp/_auth.ts (applyPerMinuteLimit, applyAnonDiscoveryLimit, emitMcpRateLimitHit)
+  - Pro daily-cap -32029 (HTTP 429)     api/mcp/_dispatch.ts (reserveDailyQuotaForRequest)
+  - Tool exec -32603                    api/mcp/_dispatch.ts (dispatchToolsCall)
+  - _budget_exceeded envelope           api/mcp/_dispatch.ts (budget cap handling)
+  - _jmespath_error envelope            api/mcp/_jmespath.ts (applyJmespath)
+  - JMESPath caps                       api/mcp/_constants.ts (JMESPATH_LIMITS)
+  - Prompts -32602                      api/mcp/prompts/_index.ts (listPrompts, getPrompt)
+  - Resources -32602 / -32603           api/mcp/resources/_index.ts (listResources, readResource)
 */}
 
 This page is the practical reference: a payload arrives, you look it up, and you know what to do next. The server signals failure on three independent layers — **HTTP status**, **JSON-RPC `error.code`**, and **soft-behavior envelopes inside `result.content[0].text`** — and a single failure can touch one, two, or all three. Triage from the outside in: HTTP status → JSON-RPC code → soft envelope.
@@ -51,7 +51,7 @@ Subsections below give the literal payload, the trigger site, and what to do for
 
 ### `-32001` — Unauthenticated / invalid credentials
 
-Fires from six `api/mcp/auth.ts` emission sites, always paired with HTTP **401** and a `WWW-Authenticate` header. Those sites collapse to five user-visible triggers, in order of how clients hit them:
+Fires from six `api/mcp/_auth.ts` emission sites, always paired with HTTP **401** and a `WWW-Authenticate` header. Those sites collapse to five user-visible triggers, in order of how clients hit them:
 
 1. **No `Authorization` bearer AND no `X-WorldMonitor-Key`** — the client called `/mcp` with no credentials.
 2. **`Authorization: Bearer <token>` but `<token>` is invalid or expired** — the token didn't resolve to a context (revoked / TTL expired / never minted by `/api/oauth/token`).
@@ -82,7 +82,7 @@ Content-Type: application/json
 
 ### `-32002` — Subscription lapsed (confirmed)
 
-Fires from the entitlement pre-check (`api/mcp/auth.ts` `getMcpBillingVerificationDenial`) and, for a lapse that lands mid-call between the pre-check and a tool's downstream fetch, from `api/mcp/dispatch.ts` (typed `BillingDenialError` re-emit). Always paired with HTTP **403**, `Cache-Control: no-store`, and an `X-Billing-Verification: subscription_lapsed` header. No `WWW-Authenticate` header is set — the credential is still valid; the subscription is not.
+Fires from the entitlement pre-check (`api/mcp/_auth.ts` `getMcpBillingVerificationDenial`) and, for a lapse that lands mid-call between the pre-check and a tool's downstream fetch, from `api/mcp/_dispatch.ts` (typed `BillingDenialError` re-emit). Always paired with HTTP **403**, `Cache-Control: no-store`, and an `X-Billing-Verification: subscription_lapsed` header. No `WWW-Authenticate` header is set — the credential is still valid; the subscription is not.
 
 ```json
 {
@@ -117,9 +117,9 @@ The `message` text identifies which limiter fired. Three distinct strings:
 
 | Auth context                              | `message`                                                                           | Site                                                    |
 |-------------------------------------------|-------------------------------------------------------------------------------------|---------------------------------------------------------|
-| `X-WorldMonitor-Key`                      | `Rate limit exceeded. Max 60 requests per minute per API key.`                      | `api/mcp/auth.ts` `applyPerMinuteLimit` API-key branch  |
-| Pro OAuth bearer                          | `Rate limit exceeded. Max 60 requests per minute per Pro user.`                     | `api/mcp/auth.ts` `applyPerMinuteLimit` Pro branch      |
-| No credential on anonymous discovery path | `Rate limit exceeded. Max 60 unauthenticated discovery requests per minute per IP.` | `api/mcp/auth.ts` `applyAnonDiscoveryLimit`             |
+| `X-WorldMonitor-Key`                      | `Rate limit exceeded. Max 60 requests per minute per API key.`                      | `api/mcp/_auth.ts` `applyPerMinuteLimit` API-key branch  |
+| Pro OAuth bearer                          | `Rate limit exceeded. Max 60 requests per minute per Pro user.`                     | `api/mcp/_auth.ts` `applyPerMinuteLimit` Pro branch      |
+| No credential on anonymous discovery path | `Rate limit exceeded. Max 60 unauthenticated discovery requests per minute per IP.` | `api/mcp/_auth.ts` `applyAnonDiscoveryLimit`             |
 
 Example payload (Pro variant — env_key clients get the same envelope shape with the API-key message string):
 
@@ -159,7 +159,7 @@ Paid-plan customers also receive account notices and bounded-cadence email when 
 
 ### `-32600` — Invalid request envelope
 
-Fires when the request body either isn't valid JSON or is valid JSON without a string `method` field. Two sites in `api/mcp/handler.ts`. Strictly a client encoder bug — well-formed JSON-RPC clients will never see this in production.
+Fires when the request body either isn't valid JSON or is valid JSON without a string `method` field. Two sites in `api/mcp/_handler.ts`. Strictly a client encoder bug — well-formed JSON-RPC clients will never see this in production.
 
 ```json
 {
@@ -191,12 +191,12 @@ The most common error code, shared across `tools/call`, `prompts/get`, `resource
 
 | Trigger                                                | Site                              | Example `message`                                                          |
 |--------------------------------------------------------|-----------------------------------|----------------------------------------------------------------------------|
-| `tools/call` with no/non-string `name`                 | `api/mcp/dispatch.ts` `dispatchToolsCall` param guard | `Invalid params: missing tool name`                         |
-| `tools/call` with `name` that isn't in the registry    | `api/mcp/dispatch.ts` `dispatchToolsCall` registry lookup | `Unknown tool: get_foo`                                  |
-| `prompts/get` with no/non-string `name`                | `api/mcp/handler.ts` `prompts/get` switch branch       | `Invalid params: missing prompt name`                        |
-| `prompts/get` with unknown name or missing required arg | `api/mcp/prompts/index.ts` `buildPromptResponse`       | `Unknown prompt: …` / `Missing required argument "iso2" for prompt "country-briefing"` |
-| `resources/read` with no/unknown/malformed `uri`       | `api/mcp/resources/index.ts` (`buildPublicResourceResponse` / `buildResourceResponse`) | `Invalid params: missing resource uri` / `Unknown resource uri "..."` |
-| `logging/setLevel` with non-string or out-of-set level | `api/mcp/handler.ts` `logging/setLevel` switch branch  | `Invalid params: level must be one of debug, info, notice, warning, error, critical, alert, emergency` |
+| `tools/call` with no/non-string `name`                 | `api/mcp/_dispatch.ts` `dispatchToolsCall` param guard | `Invalid params: missing tool name`                         |
+| `tools/call` with `name` that isn't in the registry    | `api/mcp/_dispatch.ts` `dispatchToolsCall` registry lookup | `Unknown tool: get_foo`                                  |
+| `prompts/get` with no/non-string `name`                | `api/mcp/_handler.ts` `prompts/get` switch branch       | `Invalid params: missing prompt name`                        |
+| `prompts/get` with unknown name or missing required arg | `api/mcp/prompts/_index.ts` `buildPromptResponse`       | `Unknown prompt: …` / `Missing required argument "iso2" for prompt "country-briefing"` |
+| `resources/read` with no/unknown/malformed `uri`       | `api/mcp/resources/_index.ts` (`buildPublicResourceResponse` / `buildResourceResponse`) | `Invalid params: missing resource uri` / `Unknown resource uri "..."` |
+| `logging/setLevel` with non-string or out-of-set level | `api/mcp/_handler.ts` `logging/setLevel` switch branch  | `Invalid params: level must be one of debug, info, notice, warning, error, critical, alert, emergency` |
 
 ```json
 {
@@ -242,12 +242,12 @@ The `message` text identifies the trigger. Seven sites emit a 503; five distinct
 
 | Trigger                                         | `message`                                              | Site                              |
 |-------------------------------------------------|--------------------------------------------------------|-----------------------------------|
-| OAuth resolution service threw (Convex blip)    | `Auth service temporarily unavailable. Try again.`     | `api/mcp/auth.ts` `resolveAuthContext` bearer branch |
-| `MCP_INTERNAL_HMAC_SECRET` unset (Pro path)     | `Service temporarily unavailable, retry in a moment.`  | `api/mcp/auth.ts` `runProPreChecks` secret preflight |
-| Pro quota-reservation Redis failure (non-cap)   | `Service temporarily unavailable, retry in a moment.`  | `api/mcp/dispatch.ts` `dispatchToolsCall` quota reservation |
-| Renewal verification in flight (#4770)          | `Renewal verification pending. Retry shortly.`         | `api/mcp/auth.ts` `getMcpBillingVerificationDenial` (pre-check) or `api/mcp/dispatch.ts` (mid-call re-emit) |
+| OAuth resolution service threw (Convex blip)    | `Auth service temporarily unavailable. Try again.`     | `api/mcp/_auth.ts` `resolveAuthContext` bearer branch |
+| `MCP_INTERNAL_HMAC_SECRET` unset (Pro path)     | `Service temporarily unavailable, retry in a moment.`  | `api/mcp/_auth.ts` `runProPreChecks` secret preflight |
+| Pro quota-reservation Redis failure (non-cap)   | `Service temporarily unavailable, retry in a moment.`  | `api/mcp/_dispatch.ts` `dispatchToolsCall` quota reservation |
+| Renewal verification in flight (#4770)          | `Renewal verification pending. Retry shortly.`         | `api/mcp/_auth.ts` `getMcpBillingVerificationDenial` (pre-check) or `api/mcp/_dispatch.ts` (mid-call re-emit) |
 | Renewal verification failed, in cooldown (#4770)| `Renewal verification failed. Retry shortly.`          | same two sites as above           |
-| Entitlement backend unreachable (#4770)         | `Unable to verify API access. Retry shortly.`          | `api/mcp/auth.ts` `getMcpBillingVerificationDenial` (pre-check, transient entitlement-lookup failure) or `api/mcp/dispatch.ts` (mid-call re-emit of a gateway `entitlement_verification_unavailable` 503 on wm\_-key tool fetches) |
+| Entitlement backend unreachable (#4770)         | `Unable to verify API access. Retry shortly.`          | `api/mcp/_auth.ts` `getMcpBillingVerificationDenial` (pre-check, transient entitlement-lookup failure) or `api/mcp/_dispatch.ts` (mid-call re-emit of a gateway `entitlement_verification_unavailable` 503 on wm\_-key tool fetches) |
 
 Recovery for the first three is identical (honour `Retry-After: 5`). The billing-verification rows differ: they carry an `X-Billing-Verification` header (`renewal_verification_pending|renewal_verification_failed`, or `entitlement_verification_unavailable` for the backend-unreachable row), a `data.code` mirroring it, and — for the two renewal-verification codes — a **dynamic `Retry-After` between 1 and 60 seconds** sized to the actual provider re-check; honour the header value rather than assuming 5 (the backend-unreachable row uses a fixed `Retry-After: 5`). The renewal-verification codes mean the subscription recently expired locally and the server is re-confirming it with the billing provider before denying; a renewed subscription typically recovers within one or two retries.
 

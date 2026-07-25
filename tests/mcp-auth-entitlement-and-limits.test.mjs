@@ -1,5 +1,5 @@
 // #5379 U3 — direct unit coverage for the three untested surfaces in
-// `api/mcp/auth.ts`:
+// `api/mcp/_auth.ts`:
 //
 //   Gap 4  `checkMcpEntitlementGate` — the four rejection predicates
 //          (`!ent`, `tier < 1`, `!mcpAccess`, `validUntil < Date.now()`) were
@@ -53,7 +53,7 @@ let bust = 0;
 /** Fresh auth.ts instance — resets the three memoized limiter singletons. */
 async function loadAuth() {
   bust += 1;
-  return import(`../api/mcp/auth.ts?u3=${bust}-${Date.now()}`);
+  return import(`../api/mcp/_auth.ts?u3=${bust}-${Date.now()}`);
 }
 
 /**
@@ -176,7 +176,7 @@ async function assertRejected(res, label) {
   assert.equal(res.headers.get('Cache-Control'), 'no-store', `${label}: auth rejections must never be cached`);
 }
 
-describe('api/mcp/auth.ts — checkMcpEntitlementGate predicates (#5379 Gap 4)', () => {
+describe('api/mcp/_auth.ts — checkMcpEntitlementGate predicates (#5379 Gap 4)', () => {
   for (const entry of GATE_ENTRIES) {
     describe(`${entry.kind} context`, () => {
       for (const c of REJECT_CASES) {
@@ -298,7 +298,7 @@ async function withTelemetry(fn) {
   return captured.filter((l) => l && typeof l === 'object' && l.tag === 'mcp.rate_limit_hit');
 }
 
-describe('api/mcp/auth.ts — applyPerMinuteLimit (#5379 Gap 9)', () => {
+describe('api/mcp/_auth.ts — applyPerMinuteLimit (#5379 Gap 9)', () => {
   const PER_MINUTE_CONTEXTS = [
     { kind: 'env_key', context: ENV_KEY_CONTEXT, key: `rl:mcp:key:${ENV_KEY}`, message: 'Rate limit exceeded. Max 60 requests per minute per API key.' },
     { kind: 'pro', context: PRO_CONTEXT, key: `rl:mcp:pro-min:pro-user:${PRO_USER_ID}`, message: 'Rate limit exceeded. Max 60 requests per minute per user.' },
@@ -424,7 +424,7 @@ function anonReq(headers = {}) {
   return new Request('https://worldmonitor.app/mcp', { method: 'POST', headers });
 }
 
-describe('api/mcp/auth.ts — applyAnonDiscoveryLimit (#5379 Gap 10)', () => {
+describe('api/mcp/_auth.ts — applyAnonDiscoveryLimit (#5379 Gap 10)', () => {
   it('no Upstash env → limiter absent → null (discovery stays open)', async () => {
     const calls = stubLimiter({ success: false });
     const res = await authMod.applyAnonDiscoveryLimit(anonReq({ 'x-real-ip': '9.9.9.9' }), CORS);

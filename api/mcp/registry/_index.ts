@@ -1,9 +1,9 @@
-import { TOOL_DESCRIPTION_MAX_BYTES } from '../constants';
-import { JMESPATH_SCHEMA } from '../jmespath';
-import type { PublicToolShape, ToolDef } from '../types';
-import { compressDescription, utf8ByteLength } from '../utils';
-import { CACHE_TOOLS } from './cache-tools';
-import { RPC_TOOLS } from './rpc-tools';
+import { TOOL_DESCRIPTION_MAX_BYTES } from '../_constants';
+import { JMESPATH_SCHEMA } from '../_jmespath';
+import type { PublicToolShape, ToolDef } from '../_types';
+import { compressDescription, utf8ByteLength } from '../_utils';
+import { CACHE_TOOLS } from './_cache-tools';
+import { RPC_TOOLS } from './_rpc-tools';
 
 // Merged tool registry — cache tools first (no `_execute`), then RPC tools
 // (with `_execute`). Order is observable: `tools/list` emits tools in
@@ -27,10 +27,10 @@ export const SUMMARY_SCHEMA = {
 for (const tool of TOOL_REGISTRY) {
   const props = tool.inputSchema.properties;
   if (props && 'jmespath' in props) {
-    throw new Error(`api/mcp/registry/index.ts: tool "${tool.name}" declares its own 'jmespath' property — collides with universal JMESPATH_SCHEMA injection. Remove the per-tool declaration.`);
+    throw new Error(`api/mcp/registry/_index.ts: tool "${tool.name}" declares its own 'jmespath' property — collides with universal JMESPATH_SCHEMA injection. Remove the per-tool declaration.`);
   }
   if (tool._execute === undefined && props && 'summary' in props) {
-    throw new Error(`api/mcp/registry/index.ts: cache tool "${tool.name}" declares its own 'summary' property — collides with universal SUMMARY_SCHEMA injection. Remove the per-tool declaration.`);
+    throw new Error(`api/mcp/registry/_index.ts: cache tool "${tool.name}" declares its own 'summary' property — collides with universal SUMMARY_SCHEMA injection. Remove the per-tool declaration.`);
   }
 }
 

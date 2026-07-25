@@ -134,11 +134,11 @@ describe('api/mcp.ts — per-tool output contract (envelope-shape, all 41 tools)
     '..', 'api', 'mcp', 'registry',
   );
   const TOOL_NAMES = (() => {
-    const cacheSrc = readFileSync(path.join(REGISTRY_DIR, 'cache-tools.ts'), 'utf8');
-    const rpcSrc = readFileSync(path.join(REGISTRY_DIR, 'rpc-tools.ts'), 'utf8');
+    const cacheSrc = readFileSync(path.join(REGISTRY_DIR, '_cache-tools.ts'), 'utf8');
+    const rpcSrc = readFileSync(path.join(REGISTRY_DIR, '_rpc-tools.ts'), 'utf8');
     const src = cacheSrc + '\n' + rpcSrc;
-    assert.ok(src.includes('CACHE_TOOLS'), 'CACHE_TOOLS declaration not found in api/mcp/registry/cache-tools.ts');
-    assert.ok(src.includes('RPC_TOOLS'), 'RPC_TOOLS declaration not found in api/mcp/registry/rpc-tools.ts');
+    assert.ok(src.includes('CACHE_TOOLS'), 'CACHE_TOOLS declaration not found in api/mcp/registry/_cache-tools.ts');
+    assert.ok(src.includes('RPC_TOOLS'), 'RPC_TOOLS declaration not found in api/mcp/registry/_rpc-tools.ts');
     const matches = [...src.matchAll(/^\s{4}name:\s+'([a-z0-9_]+)'/gm)];
     return matches.map((m) => m[1]);
   })();
