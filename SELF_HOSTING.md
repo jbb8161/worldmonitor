@@ -350,11 +350,24 @@ behind it, or every angle falls back to the on-device browser T5 model
   `OLLAMA_HOST_ALLOWLIST`) — a Vercel function cannot reach an Ollama
   instance running on your own machine or network through that
   allowlist, so `ollama` will always be skipped there regardless of the
-  premium-gate fix. Set **`OPENROUTER_API_KEY`** (tried first after
-  Ollama in the client's provider order — cheap DeepSeek V4 Flash) or
-  **`GROQ_API_KEY`** as a Vercel project environment variable instead;
-  either one alone is enough for `generateSummary()` to produce a real
-  synthesized angle instead of falling through to browser T5.
+  premium-gate fix. Set **`GROQ_API_KEY`** as a Vercel project
+  environment variable instead (read directly via `process.env.GROQ_API_KEY`
+  in `server/_shared/llm.ts`) — recommended over `OPENROUTER_API_KEY` for
+  this specific use case: Groq's free tier needs no credit card and
+  comfortably covers occasional angle generation for a small team, and
+  short content-angle summaries don't need access to closed frontier
+  models. `OPENROUTER_API_KEY` also works (tried first, ahead of Groq, in
+  the client's provider order) if you'd rather route through OpenRouter,
+  but Groq alone is enough for `generateSummary()`/the Briefing's angle
+  generator to produce a real synthesized angle instead of falling
+  through to browser T5.
+
+  Angle generation is Redis-cached server-side for 24h keyed on the
+  cluster's headline set (`CACHE_TTL_SECONDS` in
+  `server/worldmonitor/news/v1/_shared.ts`), shared across every caller
+  hitting the same deployment — so multiple teammates opening the
+  Briefing the same day reuse the same cached angle rather than each
+  triggering a fresh Groq call, keeping usage well inside the free tier.
 
 ## 🌐 Connecting to External Infrastructure
 
