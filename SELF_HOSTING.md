@@ -210,6 +210,34 @@ docker compose down && docker compose up -d
   docker run --rm -v "$(pwd)":/app -w /app node:24-alpine npm install --package-lock-only
   ```
 
+### 🔀 Building a specific variant (e.g. AUSPEX)
+
+Set `VITE_VARIANT` before building to get a variant-specific dashboard
+(branding, panels, feeds) instead of the default `full` build:
+
+```bash
+VITE_VARIANT=auspex npx vite build
+# or for local dev:
+npm run dev:auspex
+```
+
+`auspex` (cybersecurity/fintech/fraud intelligence) is self-hosted only —
+it isn't part of the worldmonitor.app multi-tenant deployment, so there's
+no subdomain routing to configure for it.
+
+**Known gap:** the server-side news digest (`server/worldmonitor/news/v1/`)
+doesn't have `auspex` wired into its variant list yet, so the digest is
+permanently empty for this variant rather than occasionally down. The
+codebase compensates by defaulting the `newsPerFeedFallback` runtime
+feature to ON for `auspex` specifically (every other variant keeps it OFF
+by default) so news panels — including the four fraud panels — fetch
+their feeds directly instead of showing "Digest unavailable" forever.
+This is a code default in `src/services/runtime-config.ts`, not something
+you need to set via environment variable. If you build out proper
+server-side digest support for `auspex` later, per-feed fallback can be
+turned back off for it from the dashboard's Settings, or by changing that
+default in code.
+
 ## 🌐 Connecting to External Infrastructure
 
 ### Shared Redis (optional)

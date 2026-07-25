@@ -1,5 +1,6 @@
 import { isDesktopRuntime } from './runtime';
 import { invokeTauri } from './tauri-bridge';
+import { SITE_VARIANT } from '@/config/variant';
 
 export type RuntimeSecretKey =
   | 'GROQ_API_KEY'
@@ -103,7 +104,16 @@ const defaultToggles: Record<RuntimeFeatureId, boolean> = {
   aiOllama: true,
   wtoTrade: true,
   supplyChain: true,
-  newsPerFeedFallback: false,
+  // Off by default everywhere: without it, a digest outage means every preset
+  // news category fetches its full feed set directly at once (thundering
+  // herd). AUSPEX is the one exception — its server-side digest support
+  // (VALID_VARIANTS / VARIANT_FEEDS in server/worldmonitor/news/v1/) doesn't
+  // exist yet, so the digest is permanently empty for it, not just
+  // occasionally down. Without this, AUSPEX's preset categories (including
+  // the four fraud panels) would never fetch anything and show "Digest
+  // unavailable" indefinitely. Self-hosted operators can still flip this
+  // per-browser via Settings regardless of variant.
+  newsPerFeedFallback: SITE_VARIANT === 'auspex',
   aviationStack: true,
   icaoNotams: true,
 };
