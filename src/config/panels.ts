@@ -1106,6 +1106,15 @@ const ENERGY_MOBILE_MAP_LAYERS: MapLayers = {
 // undefined outside a Vite context and crashes any node:test file that
 // imports panels.ts directly (e.g. tests/panel-variant-config.test.mts).
 // Keep in sync with ICOUNTER_PANEL_ADDITIONS in icounter-feeds-additions.ts.
+//
+// 'live-news' is also dropped: the key is claimed by the dedicated 24/7 video
+// LiveNewsPanel (not an RSS category — see the collision note in
+// panel-layout.ts), and AUSPEX's own FEEDS never defines a 'live-news'
+// category. Keeping the panel enabled made the news loader treat it as a
+// user-customized category and silently fall back to ENERGY_FEEDS's
+// oil/gas sources via CANONICAL_FEEDS — fetched but never rendered by
+// anything. Dropping it follows the same precedent as the happy variant,
+// which also has no 'live-news' panel.
 const {
   startups: _auspexDropStartupsPanel,
   vcblogs: _auspexDropVcblogsPanel,
@@ -1124,6 +1133,7 @@ const {
   'airline-intel': _auspexDropAirlineIntelPanel,
   'tech-readiness': _auspexDropTechReadinessPanel,
   ipo: _auspexDropIpoPanel,
+  'live-news': _auspexDropLiveNewsPanel,
   ...AUSPEX_TECH_PANELS_BASE
 } = TECH_PANELS;
 
@@ -1227,7 +1237,6 @@ export const VARIANT_PANEL_OVERRIDES: Partial<Record<string, Partial<Record<stri
   },
   auspex: {
     map:         { name: 'Global Fraud Map' },
-    'live-news': { name: 'AUSPEX Headlines' },
     insights:    { name: 'AI Fraud Insights' },
   },
 };

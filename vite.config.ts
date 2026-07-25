@@ -249,9 +249,13 @@ function htmlVariantPlugin(activeMeta: VariantMeta, activeVariant: string, isDes
 
       // Desktop builds: inject build-time variant into the inline script so data-variant is set
       // before CSS loads. Web builds always use 'full' — runtime hostname detection handles variants.
+      // Must replace the whole if/else statement (not just the `if` branch) — replacing only the
+      // `if` branch leaves the original `else document.documentElement.removeAttribute(...)` dangling
+      // with no matching `if`, which is a syntax error that stops the rest of the script (including
+      // `classList.add('js')`) from ever running.
       if (activeVariant !== 'full') {
         result = result.replace(
-          /if\(v\)document\.documentElement\.dataset\.variant=v;/,
+          /if\(v\)document\.documentElement\.dataset\.variant=v;else document\.documentElement\.removeAttribute\('data-variant'\);/,
           `v='${activeVariant}';document.documentElement.dataset.variant=v;`
         );
       }

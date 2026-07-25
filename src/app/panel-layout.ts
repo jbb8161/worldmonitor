@@ -2310,7 +2310,12 @@ export class PanelLayoutManager implements AppModule {
     } else {
       allOrder = [...defaultOrder];
 
-      if (SITE_VARIANT !== 'happy') {
+      // 'happy' and 'auspex' have no 'live-news' panel (see panels.ts) — without
+      // this guard, `allOrder.indexOf('live-news')` returns -1 below, and the
+      // live-webcams repositioning math (`afterNews = -1 + 1 = 0`) would splice
+      // live-webcams to the very front of the panel order instead of leaving it
+      // in place.
+      if (SITE_VARIANT !== 'happy' && SITE_VARIANT !== 'auspex') {
         const liveNewsIdx = allOrder.indexOf('live-news');
         if (liveNewsIdx > 0) {
           allOrder.splice(liveNewsIdx, 1);
