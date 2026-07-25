@@ -368,6 +368,16 @@ behind it, or every angle falls back to the on-device browser T5 model
   hitting the same deployment — so multiple teammates opening the
   Briefing the same day reuse the same cached angle rather than each
   triggering a fresh Groq call, keeping usage well inside the free tier.
+  **This caching only exists if `UPSTASH_REDIS_REST_URL` and
+  `UPSTASH_REDIS_REST_TOKEN` are also set** (documented under "Cross-User
+  Cache" in `.env.example`) — without them, `cachedFetchJsonWithMeta()`
+  in `server/_shared/redis.ts` treats every read as a miss and every
+  write as a silent no-op (no error, just zero caching), so every angle
+  on every page load becomes a fresh Groq call. Create a free database at
+  [upstash.com](https://upstash.com/) (or via Vercel's Upstash
+  marketplace integration, which populates the same two vars) and set
+  those two env vars in the Vercel project before relying on the
+  free-tier-is-enough reasoning above.
 
 ## 🌐 Connecting to External Infrastructure
 
