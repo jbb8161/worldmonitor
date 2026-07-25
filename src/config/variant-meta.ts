@@ -1,3 +1,5 @@
+import { AUSPEX_META } from './auspex-meta';
+
 export interface VariantMeta {
   title: string;
   description: string;
@@ -151,3 +153,18 @@ export const VARIANT_META: { full: VariantMeta; [k: string]: VariantMeta } = {
     ],
   },
 };
+
+/**
+ * Resolves branding metadata for any variant, including AUSPEX. AUSPEX is
+ * intentionally NOT a VARIANT_META key above: that object is read by
+ * tests/deploy-config.test.mjs, which cross-checks every non-'full' entry
+ * (including a raw text-scan for `url: 'https://...'`) against vercel.json
+ * host rewrites and middleware.ts crawler stubs for the real worldmonitor.app
+ * subdomains — a contract AUSPEX isn't part of. Its branding lives in the
+ * separate auspex-meta.ts instead. Use this function rather than indexing
+ * VARIANT_META directly wherever a variant's meta may be 'auspex'.
+ */
+export function getVariantMeta(variant: string): VariantMeta {
+  if (variant === 'auspex') return AUSPEX_META;
+  return VARIANT_META[variant] ?? VARIANT_META.full;
+}

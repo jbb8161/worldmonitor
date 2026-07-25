@@ -6,7 +6,7 @@ import { mkdir, readFile, writeFile } from 'fs/promises';
 import { brotliCompress } from 'zlib';
 import { promisify } from 'util';
 import pkg from './package.json';
-import { VARIANT_META, type VariantMeta } from './src/config/variant-meta';
+import { getVariantMeta, type VariantMeta } from './src/config/variant-meta';
 import {
   WEB_DASHBOARD_VARIANTS,
   renderVariantDashboardHtml,
@@ -865,7 +865,7 @@ export default defineConfig(({ mode }) => {
   const isE2E = process.env.VITE_E2E === '1';
   const isDesktopBuild = process.env.VITE_DESKTOP_RUNTIME === '1';
   const activeVariant = process.env.VITE_VARIANT || 'full';
-  const activeMeta = VARIANT_META[activeVariant] || VARIANT_META.full;
+  const activeMeta = getVariantMeta(activeVariant);
 
   return {
     html: {
