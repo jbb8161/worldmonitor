@@ -1,6 +1,9 @@
 // AUSPEX variant - cybersecurity, fintech, crypto/stablecoin, and fraud
-// intelligence dashboard. Forked from the tech/AI variant (tech.ts) and
-// merged with the icounter fraud/fintech feed additions.
+// intelligence dashboard. Forked from the tech/AI variant (tech.ts),
+// merged with the icounter fraud/fintech feed additions, and stripped of
+// tech.ts's startup/VC-ecosystem categories (startups, vcblogs,
+// regionalStartups, unicorns, accelerators, producthunt, hardware, cloud,
+// dev, layoffs) — noise for a fraud/fintech GTM audience.
 import type { PanelConfig, MapLayers } from '@/types';
 import type { VariantConfig } from './base';
 
@@ -24,7 +27,8 @@ export {
   type SourceType,
 } from '../feeds';
 
-// AUSPEX FEEDS configuration: tech.ts's feeds + icounter fraud/fintech additions
+// AUSPEX FEEDS configuration: tech.ts's feeds (minus the dropped
+// startup/VC-ecosystem categories) + icounter fraud/fintech additions
 import type { Feed } from '@/types';
 import { rssProxyUrl } from '@/utils';
 import { ICOUNTER_FEED_ADDITIONS, ICOUNTER_PANEL_ADDITIONS } from '../icounter-feeds-additions';
@@ -59,47 +63,6 @@ export const FEEDS: Record<string, Feed[]> = {
     { name: 'OpenAI News', url: rss('https://news.google.com/rss/search?q=OpenAI+ChatGPT+GPT-4+when:7d&hl=en-US&gl=US&ceid=US:en') },
   ],
 
-  // Startups & VC - Comprehensive coverage
-  startups: [
-    { name: 'TechCrunch Startups', url: rss('https://techcrunch.com/category/startups/feed/') },
-    { name: 'VentureBeat', url: rss('https://venturebeat.com/feed/') },
-    { name: 'Crunchbase News', url: rss('https://news.crunchbase.com/feed/') },
-    { name: 'SaaStr', url: rss('https://www.saastr.com/feed/') },
-    { name: 'TechCrunch Venture', url: rss('https://techcrunch.com/category/venture/feed/') },
-    { name: 'The Information', url: rss('https://news.google.com/rss/search?q=site:theinformation.com+startup+OR+funding+when:3d&hl=en-US&gl=US&ceid=US:en') },
-    { name: 'Fortune Term Sheet', url: rss('https://news.google.com/rss/search?q="Term+Sheet"+venture+capital+OR+startup+when:7d&hl=en-US&gl=US&ceid=US:en') },
-    { name: 'PitchBook News', url: rss('https://pitchbook.com/feed') },
-    { name: 'CB Insights', url: rss('https://www.cbinsights.com/research/feed/') },
-  ],
-
-  // Accelerator & VC Blogs - Thought leadership
-  vcblogs: [
-    { name: 'Y Combinator Blog', url: rss('https://www.ycombinator.com/blog/rss/') },
-    { name: 'a16z Blog', url: rss('https://www.a16z.news/feed') },
-    { name: 'First Round Review', url: rss('https://review.firstround.com/articles/rss') },
-    { name: 'Sequoia Blog', url: rss('https://www.sequoiacap.com/feed/') },
-    { name: 'NFX Essays', url: rss('https://www.nfx.com/feed') },
-    { name: 'Paul Graham Essays', url: rss('https://www.aaronsw.com/2002/feeds/pgessays.rss') },
-    { name: 'Both Sides of Table', url: rss('https://bothsidesofthetable.com/feed') },
-    { name: 'Lenny\'s Newsletter', url: rss('https://www.lennysnewsletter.com/feed') },
-    { name: 'Stratechery', url: rss('https://stratechery.com/feed/') },
-  ],
-
-  // Regional Startup News - Global coverage
-  regionalStartups: [
-    { name: 'EU Startups', url: rss('https://www.eu-startups.com/feed/') },
-    { name: 'Tech.eu', url: rss('https://tech.eu/feed/') },
-    { name: 'Sifted (Europe)', url: rss('https://sifted.eu/feed') },
-    { name: 'Tech in Asia', url: rss('https://www.techinasia.com/feed') },
-    { name: 'KrASIA', url: rss('https://kr-asia.com/feed') },
-    { name: 'TechCabal (Africa)', url: rss('https://techcabal.com/feed/') },
-    { name: 'Disrupt Africa', url: rss('https://disrupt-africa.com/feed/') },
-    { name: 'LAVCA (LATAM)', url: rss('https://lavca.org/feed/') },
-    { name: 'Contxto (LATAM)', url: rss('https://contxto.com/feed/') },
-    { name: 'Inc42 (India)', url: rss('https://inc42.com/feed/') },
-    { name: 'YourStory', url: rss('https://yourstory.com/feed') },
-  ],
-
   // Cybersecurity
   security: [
     { name: 'Krebs Security', url: rss('https://krebsonsecurity.com/feed/') },
@@ -126,63 +89,10 @@ export const FEEDS: Record<string, Feed[]> = {
     { name: 'Seeking Alpha Tech', url: rss('https://seekingalpha.com/market_currents.xml') },
   ],
 
-  // Semiconductors & Hardware
-  hardware: [
-    { name: "Tom's Hardware", url: rss('https://www.tomshardware.com/feeds/all') },
-    { name: 'SemiAnalysis', url: rss('https://www.semianalysis.com/feed') },
-    { name: 'Semiconductor News', url: rss('https://news.google.com/rss/search?q=semiconductor+OR+chip+OR+TSMC+OR+NVIDIA+OR+Intel+when:3d&hl=en-US&gl=US&ceid=US:en') },
-  ],
-
-  // Cloud & Infrastructure
-  cloud: [
-    { name: 'InfoQ', url: rss('https://feed.infoq.com/') },
-    { name: 'The New Stack', url: rss('https://thenewstack.io/feed/') },
-    { name: 'DevOps.com', url: rss('https://devops.com/feed/') },
-  ],
-
-  // Developer Community
-  dev: [
-    { name: 'Dev.to', url: rss('https://dev.to/feed') },
-    { name: 'Lobsters', url: rss('https://lobste.rs/rss') },
-    { name: 'Changelog', url: rss('https://changelog.com/feed') },
-    { name: 'Show HN', url: rss('https://hnrss.org/show') },
-    { name: 'YC Launches', url: rss('https://hnrss.org/launches') },
-    { name: 'Dev Events', url: rss('https://dev.events/rss.xml') },
-  ],
-
-  // Layoffs Tracker
-  layoffs: [
-    { name: 'Layoffs.fyi', url: rss('https://news.google.com/rss/search?q=tech+layoffs+when:7d&hl=en-US&gl=US&ceid=US:en') },
-    { name: 'TechCrunch Layoffs', url: rss('https://techcrunch.com/tag/layoffs/feed/') },
-  ],
-
-  // Unicorn Tracker
-  unicorns: [
-    { name: 'Unicorn News', url: rss('https://news.google.com/rss/search?q=("unicorn+startup"+OR+"unicorn+valuation"+OR+"$1+billion+valuation")+when:7d&hl=en-US&gl=US&ceid=US:en') },
-    { name: 'CB Insights Unicorn', url: rss('https://news.google.com/rss/search?q=site:cbinsights.com+unicorn+when:14d&hl=en-US&gl=US&ceid=US:en') },
-    { name: 'Decacorn News', url: rss('https://news.google.com/rss/search?q=("decacorn"+OR+"$10+billion+valuation"+OR+"$10B+valuation")+startup+when:14d&hl=en-US&gl=US&ceid=US:en') },
-    { name: 'New Unicorns', url: rss('https://news.google.com/rss/search?q=("becomes+unicorn"+OR+"joins+unicorn"+OR+"reaches+unicorn"+OR+"achieved+unicorn")+when:14d&hl=en-US&gl=US&ceid=US:en') },
-  ],
-
   // IPO & SPAC
   ipo: [
     { name: 'IPO News', url: rss('https://news.google.com/rss/search?q=(IPO+OR+"initial+public+offering"+OR+SPAC)+tech+when:7d&hl=en-US&gl=US&ceid=US:en') },
     { name: 'Tech IPO News', url: rss('https://news.google.com/rss/search?q=tech+IPO+OR+"tech+company"+IPO+when:7d&hl=en-US&gl=US&ceid=US:en') },
-  ],
-
-  // Product Hunt
-  producthunt: [
-    { name: 'Product Hunt', url: rss('https://www.producthunt.com/feed') },
-  ],
-
-  // Accelerators & Demo Days
-  accelerators: [
-    { name: 'YC News', url: rss('https://news.ycombinator.com/rss') },
-    { name: 'YC Blog', url: rss('https://www.ycombinator.com/blog/rss/') },
-    { name: 'Techstars Blog', url: rss('https://www.techstars.com/blog/feed/') },
-    { name: '500 Global News', url: rss('https://news.google.com/rss/search?q="500+Global"+OR+"500+Startups"+accelerator+when:14d&hl=en-US&gl=US&ceid=US:en') },
-    { name: 'Demo Day News', url: rss('https://news.google.com/rss/search?q=("demo+day"+OR+"YC+batch"+OR+"accelerator+batch")+startup+when:7d&hl=en-US&gl=US&ceid=US:en') },
-    { name: 'Startup School', url: rss('https://news.google.com/rss/search?q="Startup+School"+OR+"YC+Startup+School"+when:14d&hl=en-US&gl=US&ceid=US:en') },
   ],
 
   // Cyber-enabled fraud, crypto/stablecoin fraud, and AI-enabled fraud
@@ -197,20 +107,11 @@ export const DEFAULT_PANELS: Record<string, PanelConfig> = {
   events: { name: 'Tech Events', enabled: true, priority: 1 },
   ai: { name: 'AI/ML News', enabled: true, priority: 1 },
   tech: { name: 'Technology', enabled: true, priority: 1 },
-  startups: { name: 'Startups & VC', enabled: true, priority: 1 },
-  vcblogs: { name: 'VC Insights & Essays', enabled: true, priority: 1 },
-  regionalStartups: { name: 'Global Startup News', enabled: true, priority: 1 },
-  unicorns: { name: 'Unicorn Tracker', enabled: true, priority: 1 },
-  accelerators: { name: 'Accelerators & Demo Days', enabled: true, priority: 1 },
   security: { name: 'Cybersecurity', enabled: true, priority: 1 },
   policy: { name: 'AI Policy & Regulation', enabled: true, priority: 1 },
-  layoffs: { name: 'Layoffs Tracker', enabled: true, priority: 1 },
   markets: { name: 'Tech Stocks', enabled: true, priority: 2 },
   finance: { name: 'Financial News', enabled: true, priority: 2 },
   crypto: { name: 'Crypto', enabled: true, priority: 2 },
-  hardware: { name: 'Semiconductors & Hardware', enabled: true, priority: 2 },
-  cloud: { name: 'Cloud & Infrastructure', enabled: true, priority: 2 },
-  dev: { name: 'Developer Community', enabled: true, priority: 2 },
   'macro-signals': { name: 'Market Radar', enabled: true, priority: 2 },
   'etf-flows': { name: 'BTC ETF Tracker', enabled: true, priority: 2 },
   stablecoins: { name: 'Stablecoins', enabled: true, priority: 2 },
@@ -219,7 +120,9 @@ export const DEFAULT_PANELS: Record<string, PanelConfig> = {
   ...ICOUNTER_PANEL_ADDITIONS,
 };
 
-// Tech-focused map layers (subset)
+// Tech-focused map layers (subset), minus the dropped startup/VC-ecosystem
+// layers (startupHubs, cloudRegions, techHQs, techEvents; accelerators was
+// already off by default in tech.ts).
 export const DEFAULT_MAP_LAYERS: MapLayers = {
   // Keep only relevant layers, set others to false
   gpsJamming: false,
@@ -251,12 +154,12 @@ export const DEFAULT_MAP_LAYERS: MapLayers = {
   ucdpEvents: false,
   displacement: false,
   climate: false,
-  // Tech-specific layers
-  startupHubs: true,
-  cloudRegions: true,
+  // Tech-specific layers (startup/VC-ecosystem layers dropped for AUSPEX)
+  startupHubs: false,
+  cloudRegions: false,
   accelerators: false,
-  techHQs: true,
-  techEvents: true,
+  techHQs: false,
+  techEvents: false,
   // Finance layers (disabled in tech variant)
   stockExchanges: false,
   financialCenters: false,
@@ -313,12 +216,12 @@ export const MOBILE_DEFAULT_MAP_LAYERS: MapLayers = {
   ucdpEvents: false,
   displacement: false,
   climate: false,
-  // Tech-specific layers (limited on mobile)
-  startupHubs: true,
+  // Tech-specific layers (startup/VC-ecosystem layers dropped for AUSPEX)
+  startupHubs: false,
   cloudRegions: false,
   accelerators: false,
   techHQs: false,
-  techEvents: true,
+  techEvents: false,
   // Finance layers (disabled in tech variant)
   stockExchanges: false,
   financialCenters: false,

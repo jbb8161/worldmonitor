@@ -994,11 +994,30 @@ const ENERGY_FEEDS: Record<string, Feed[]> = {
 };
 
 // AUSPEX variant feeds — cybersecurity, fintech, crypto/stablecoin, and
-// cyber-/AI-enabled fraud intelligence. Base is TECH_FEEDS plus the
-// icounter fraud/fintech categories (fraud, fraudVectors, cryptoFraud,
-// aiFraud) merged in — see icounter-feeds-additions.ts.
+// cyber-/AI-enabled fraud intelligence. Base is TECH_FEEDS, minus the
+// startup/VC-ecosystem categories that don't serve a fraud/fintech GTM
+// audience, plus the icounter fraud/fintech categories (fraud,
+// fraudVectors, cryptoFraud, aiFraud) merged in — see
+// icounter-feeds-additions.ts.
+const {
+  startups: _auspexDropStartups,
+  vcblogs: _auspexDropVcblogs,
+  regionalStartups: _auspexDropRegionalStartups,
+  unicorns: _auspexDropUnicorns,
+  accelerators: _auspexDropAccelerators,
+  producthunt: _auspexDropProducthunt,
+  github: _auspexDropGithub,
+  layoffs: _auspexDropLayoffs,
+  podcasts: _auspexDropPodcasts,
+  funding: _auspexDropFunding,
+  hardware: _auspexDropHardware,
+  cloud: _auspexDropCloud,
+  dev: _auspexDropDev,
+  ...AUSPEX_TECH_FEEDS_BASE
+} = TECH_FEEDS;
+
 const AUSPEX_FEEDS: Record<string, Feed[]> = {
-  ...TECH_FEEDS,
+  ...AUSPEX_TECH_FEEDS_BASE,
   ...ICOUNTER_FEED_ADDITIONS,
 };
 

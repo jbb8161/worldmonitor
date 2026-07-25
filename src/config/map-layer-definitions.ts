@@ -331,10 +331,12 @@ const VARIANT_LAYER_ORDER: Record<MapVariant, Array<keyof MapLayers>> = {
     'resilienceScore', 'dayNight',
   ],
   auspex: [
-    // Mirror of tech — AUSPEX_MAP_LAYERS in panels.ts is a copy of TECH_MAP_LAYERS.
-    'startupHubs', 'techHQs', 'accelerators', 'cloudRegions',
+    // Subset of tech — AUSPEX_MAP_LAYERS in panels.ts drops the
+    // startup/VC-ecosystem layers (startupHubs, techHQs, techEvents,
+    // cloudRegions, accelerators) as not relevant to a fraud/fintech GTM
+    // audience.
     'datacenters', 'cables', 'outages', 'cyberThreats',
-    'techEvents', 'resilienceScore', 'natural', 'fires', 'dayNight',
+    'resilienceScore', 'natural', 'fires', 'dayNight',
   ],
 };
 

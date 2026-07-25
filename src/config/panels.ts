@@ -1098,23 +1098,59 @@ const ENERGY_MOBILE_MAP_LAYERS: MapLayers = {
 // ============================================
 // AUSPEX VARIANT (Cybersecurity, fintech, crypto & fraud intelligence)
 // ============================================
-// Base is TECH_PANELS + the icounter fraud/fintech panel additions, inlined
-// (rather than imported) so this module stays free of the '@/utils' →
-// src/utils/proxy.ts dependency chain — proxy.ts reads `import.meta.env` at
-// module scope, which is undefined outside a Vite context and crashes any
-// node:test file that imports panels.ts directly (e.g.
-// tests/panel-variant-config.test.mts). Keep in sync with
-// ICOUNTER_PANEL_ADDITIONS in icounter-feeds-additions.ts.
+// Base is TECH_PANELS, minus the startup/VC-ecosystem and unrelated panels
+// that don't serve a fraud/fintech GTM audience, plus the icounter
+// fraud/fintech panel additions, inlined (rather than imported) so this
+// module stays free of the '@/utils' → src/utils/proxy.ts dependency
+// chain — proxy.ts reads `import.meta.env` at module scope, which is
+// undefined outside a Vite context and crashes any node:test file that
+// imports panels.ts directly (e.g. tests/panel-variant-config.test.mts).
+// Keep in sync with ICOUNTER_PANEL_ADDITIONS in icounter-feeds-additions.ts.
+const {
+  startups: _auspexDropStartupsPanel,
+  vcblogs: _auspexDropVcblogsPanel,
+  regionalStartups: _auspexDropRegionalStartupsPanel,
+  unicorns: _auspexDropUnicornsPanel,
+  accelerators: _auspexDropAcceleratorsPanel,
+  producthunt: _auspexDropProducthuntPanel,
+  github: _auspexDropGithubPanel,
+  layoffs: _auspexDropLayoffsPanel,
+  funding: _auspexDropFundingPanel,
+  hardware: _auspexDropHardwarePanel,
+  cloud: _auspexDropCloudPanel,
+  dev: _auspexDropDevPanel,
+  'tech-hubs': _auspexDropTechHubsPanel,
+  'global-procurement': _auspexDropGlobalProcurementPanel,
+  'airline-intel': _auspexDropAirlineIntelPanel,
+  'tech-readiness': _auspexDropTechReadinessPanel,
+  ...AUSPEX_TECH_PANELS_BASE
+} = TECH_PANELS;
+
 const AUSPEX_PANELS: Record<string, PanelConfig> = {
-  ...TECH_PANELS,
+  ...AUSPEX_TECH_PANELS_BASE,
   fraud: { name: 'Cyber-Enabled Fraud', enabled: true, priority: 1 },
   fraudVectors: { name: 'Fraud Scenario Watch', enabled: true, priority: 1 },
   cryptoFraud: { name: 'Crypto & Stablecoin Fraud', enabled: true, priority: 1 },
   aiFraud: { name: 'AI-Enabled Fraud', enabled: true, priority: 1 },
 };
 
-const AUSPEX_MAP_LAYERS: MapLayers = { ...TECH_MAP_LAYERS };
-const AUSPEX_MOBILE_MAP_LAYERS: MapLayers = { ...TECH_MOBILE_MAP_LAYERS };
+// Map layers unchanged except the dropped startup/VC-ecosystem layers
+// (startupHubs, techHQs, techEvents, cloudRegions) forced off — matches
+// VARIANT_LAYER_ORDER.auspex in map-layer-definitions.ts, which is what
+// actually gates rendering; these overrides just keep the stated defaults
+// honest. `accelerators` is already false in TECH_MAP_LAYERS.
+const AUSPEX_MAP_LAYERS: MapLayers = {
+  ...TECH_MAP_LAYERS,
+  startupHubs: false,
+  techHQs: false,
+  techEvents: false,
+  cloudRegions: false,
+};
+const AUSPEX_MOBILE_MAP_LAYERS: MapLayers = {
+  ...TECH_MOBILE_MAP_LAYERS,
+  startupHubs: false,
+  techEvents: false,
+};
 
 // ============================================
 // UNIFIED PANEL REGISTRY
