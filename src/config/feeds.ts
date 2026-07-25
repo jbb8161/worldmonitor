@@ -997,7 +997,7 @@ const ENERGY_FEEDS: Record<string, Feed[]> = {
 // cyber-/AI-enabled fraud intelligence. Base is TECH_FEEDS, minus the
 // startup/VC-ecosystem categories that don't serve a fraud/fintech GTM
 // audience, plus the icounter fraud/fintech categories (fraud,
-// fraudVectors, cryptoFraud, aiFraud) merged in — see
+// fraudVectors, cryptoFraud, aiFraud, tprm) merged in — see
 // icounter-feeds-additions.ts.
 const {
   startups: _auspexDropStartups,

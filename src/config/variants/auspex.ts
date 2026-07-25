@@ -89,8 +89,8 @@ export const FEEDS: Record<string, Feed[]> = {
     { name: 'Seeking Alpha Tech', url: rss('https://seekingalpha.com/market_currents.xml') },
   ],
 
-  // Cyber-enabled fraud, crypto/stablecoin fraud, and AI-enabled fraud
-  // (merged in from icounter-feeds-additions.ts)
+  // Cyber-enabled fraud, crypto/stablecoin fraud, AI-enabled fraud, and
+  // third-party risk management (merged in from icounter-feeds-additions.ts)
   ...ICOUNTER_FEED_ADDITIONS,
 };
 
@@ -110,7 +110,8 @@ export const DEFAULT_PANELS: Record<string, PanelConfig> = {
   'etf-flows': { name: 'BTC ETF Tracker', enabled: true, priority: 2 },
   stablecoins: { name: 'Stablecoins', enabled: true, priority: 2 },
   monitors: { name: 'My Monitors', enabled: true, priority: 2 },
-  // Cyber-enabled / crypto / AI-enabled fraud (merged in from icounter-feeds-additions.ts)
+  // Cyber-enabled / crypto / AI-enabled fraud, plus third-party risk
+  // management (merged in from icounter-feeds-additions.ts)
   ...ICOUNTER_PANEL_ADDITIONS,
 };
 

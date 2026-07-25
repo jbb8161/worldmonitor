@@ -48,6 +48,17 @@ export const ICOUNTER_FEED_ADDITIONS: Record<string, Feed[]> = {
     { name: 'AI-Generated Synthetic Identity', url: rss('https://news.google.com/rss/search?q=AI+"synthetic+identity"+OR+AI+generated+identity+fraud+when:7d&hl=en-US&gl=US&ceid=US:en') },
     { name: 'AI Regulation (Financial Sector)', url: rss('https://news.google.com/rss/search?q="AI+regulation"+bank+OR+financial+when:7d&hl=en-US&gl=US&ceid=US:en') },
   ],
+
+  // Third-Party Risk Management — closes the gap with iCOUNTER's four-domain
+  // intel taxonomy (Third-Party Risk was in the original CTOS scope but
+  // hadn't made it into AUSPEX until now).
+  tprm: [
+    { name: 'Third-Party Breach Disclosures', url: rss('https://news.google.com/rss/search?q="third+party"+OR+vendor+breach+when:5d&hl=en-US&gl=US&ceid=US:en') },
+    { name: 'Supply Chain Compromise', url: rss('https://news.google.com/rss/search?q="supply+chain+attack"+OR+"supply+chain+compromise"+when:5d&hl=en-US&gl=US&ceid=US:en') },
+    { name: 'Fourth-Party Risk', url: rss('https://news.google.com/rss/search?q="fourth+party"+risk+OR+"fourth-party+risk"+when:7d&hl=en-US&gl=US&ceid=US:en') },
+    { name: 'Vendor Risk Management', url: rss('https://news.google.com/rss/search?q="vendor+risk+management"+OR+"third+party+risk"+when:5d&hl=en-US&gl=US&ceid=US:en') },
+    { name: 'Concentration Risk / Critical Vendors', url: rss('https://news.google.com/rss/search?q="vendor+concentration+risk"+OR+"critical+vendor"+regulatory+when:7d&hl=en-US&gl=US&ceid=US:en') },
+  ],
 };
 
 // Suggested PANELS entries to merge alongside the existing tech.ts panel config
@@ -56,4 +67,5 @@ export const ICOUNTER_PANEL_ADDITIONS = {
   fraudVectors: { name: 'Fraud Scenario Watch', enabled: true, priority: 1 },
   cryptoFraud: { name: 'Crypto & Stablecoin Fraud', enabled: true, priority: 1 },
   aiFraud: { name: 'AI-Enabled Fraud', enabled: true, priority: 1 },
+  tprm: { name: 'Third-Party Risk', enabled: true, priority: 1 },
 };
