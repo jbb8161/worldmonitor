@@ -40,6 +40,7 @@ import type { ParsedMapUrlState } from '@/utils';
 import { BreakingNewsBanner } from '@/components/BreakingNewsBanner';
 import { initBreakingNewsAlerts, destroyBreakingNewsAlerts } from '@/services/breaking-news-alerts';
 import { markLcpDebug } from '@/utils/lcp-debug';
+import { getVariantMeta } from '@/config/variant-meta';
 import type { ServiceStatusPanel } from '@/components/ServiceStatusPanel';
 import type { MonitorPanel } from '@/components/MonitorPanel';
 import type { StablecoinPanel } from '@/components/StablecoinPanel';
@@ -1270,16 +1271,25 @@ export class App {
     // Localize the static index.html shell — <title>, meta description, and
     // sr-only <h1> are baked in English so search crawlers see something
     // before JS runs; once i18n is ready we swap them to the user's locale.
-    document.title = t('shell.documentTitle');
+    // `shell.documentTitle`/`shell.metaDescription` are only translated for
+    // the 'full' (World Monitor) product — non-'full' variants have no
+    // per-locale strings, so using them here unconditionally clobbered the
+    // correct build-time variant title (e.g. AUSPEX) with the generic "World
+    // Monitor" copy a few seconds after boot. For non-'full' variants, keep
+    // the English variant metadata that vite.config.ts and meta-tags.ts's
+    // resetMetaTags() already use, instead of the untranslated shell keys.
+    const shellTitle = SITE_VARIANT === 'full' ? t('shell.documentTitle') : getVariantMeta(SITE_VARIANT).title;
+    const shellDescription = SITE_VARIANT === 'full' ? t('shell.metaDescription') : getVariantMeta(SITE_VARIANT).description;
+    document.title = shellTitle;
     const setMeta = (sel: string, val: string) => {
       const el = document.querySelector(sel);
       if (el) el.setAttribute('content', val);
     };
-    setMeta('meta[name="description"]', t('shell.metaDescription'));
-    setMeta('meta[property="og:title"]', t('shell.documentTitle'));
-    setMeta('meta[property="og:description"]', t('shell.metaDescription'));
-    setMeta('meta[name="twitter:title"]', t('shell.documentTitle'));
-    setMeta('meta[name="twitter:description"]', t('shell.metaDescription'));
+    setMeta('meta[name="description"]', shellDescription);
+    setMeta('meta[property="og:title"]', shellTitle);
+    setMeta('meta[property="og:description"]', shellDescription);
+    setMeta('meta[name="twitter:title"]', shellTitle);
+    setMeta('meta[name="twitter:description"]', shellDescription);
     // Mirror of OG_LOCALE in pro-test/src/i18n.ts. The two packages have
     // separate Vite roots and bundlers and can't share an import — keep the
     // tables aligned by hand when adding a locale here OR there.
@@ -1293,7 +1303,7 @@ export class App {
     const baseLang = (document.documentElement.lang || 'en').split('-')[0] || 'en';
     setMeta('meta[property="og:locale"]', ogLocaleMap[baseLang] || `${baseLang}_${baseLang.toUpperCase()}`);
     const srH1 = document.querySelector('body > h1');
-    if (srH1) srH1.textContent = t('shell.documentTitle');
+    if (srH1) srH1.textContent = shellTitle;
     const aiFlow = getAiFlowSettings();
     if (aiFlow.browserModel || isDesktopRuntime()) {
       await mlWorker.init();
