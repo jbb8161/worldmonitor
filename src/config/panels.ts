@@ -1143,6 +1143,7 @@ const AUSPEX_PANELS: Record<string, PanelConfig> = {
   fraudVectors: { name: 'Fraud Scenario Watch', enabled: true, priority: 1 },
   cryptoFraud: { name: 'Crypto & Stablecoin Fraud', enabled: true, priority: 1 },
   aiFraud: { name: 'AI-Enabled Fraud', enabled: true, priority: 1 },
+  tprm: { name: 'Third-Party Risk', enabled: true, priority: 1 },
 };
 
 // Map layers unchanged except the dropped startup/VC-ecosystem layers
