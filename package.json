@@ -158,6 +158,7 @@
     "@fontsource/tajawal": "^5.2.7",
     "@protomaps/basemaps": "^5.7.1",
     "@sentry/browser": "^10.39.0",
+    "@tommyvez/passfort": "^1.0.1",
     "@upstash/ratelimit": "^2.0.8",
     "@upstash/redis": "^1.36.1",
     "@vercel/analytics": "^2.0.0",
