@@ -7,29 +7,29 @@ import {
   resolveAuthContext,
   runContextPreChecks,
   wwwAuthHeader,
-} from './auth';
+} from './_auth';
 import {
   MCP_LOG_LEVELS,
   negotiateProtocolVersion,
   SERVER_INSTRUCTIONS,
   SERVER_NAME,
   SERVER_VERSION,
-} from './constants';
-import { dispatchToolsCall } from './dispatch';
-import { buildPromptResponse, PROMPT_LIST_RESPONSE } from './prompts/index';
-import { TOOL_LIST_BYTES, TOOL_LIST_RESPONSE } from './registry/index';
+} from './_constants';
+import { dispatchToolsCall } from './_dispatch';
+import { buildPromptResponse, PROMPT_LIST_RESPONSE } from './prompts/_index';
+import { TOOL_LIST_BYTES, TOOL_LIST_RESPONSE } from './registry/_index';
 import {
   buildPublicResourceResponse,
   buildResourceResponse,
   isPublicResourceUri,
   RESOURCE_LIST_RESPONSE,
   RESOURCE_TEMPLATE_LIST_RESPONSE,
-} from './resources/index';
-import { rpcError, rpcOk, withMcpNoStore } from './rpc';
-import { buildUiResourceRead, isUiResourceUri, UI_RESOURCE_LIST_RESPONSE } from './ui/registry';
-import { emitTelemetry, principalIdForLog } from './telemetry';
-import { createMcpUsage, emitMcpRequestEvent, setUsageContext, type McpUsage } from './usage';
-import type { McpAuthContext, McpHandlerDeps } from './types';
+} from './resources/_index';
+import { rpcError, rpcOk, withMcpNoStore } from './_rpc';
+import { buildUiResourceRead, isUiResourceUri, UI_RESOURCE_LIST_RESPONSE } from './ui/_registry';
+import { emitTelemetry, principalIdForLog } from './_telemetry';
+import { createMcpUsage, emitMcpRequestEvent, setUsageContext, type McpUsage } from './_usage';
+import type { McpAuthContext, McpHandlerDeps } from './_types';
 
 // MCP methods servable WITHOUT authentication. These are the zero-data
 // discovery surface an agent (or an agent-readiness scanner) needs to learn
@@ -103,7 +103,7 @@ type StoredSseEvent = {
 const SSE_CONTENT_TYPE = 'text/event-stream; charset=utf-8';
 // no-store forbids storage outright; no-cache is vacuous alongside it (RFC 9111
 // §5.2) so it is omitted. no-transform is load-bearing for SSE framing. This also
-// matches the sibling no-store work in api/mcp/rpc.ts (#4502).
+// matches the sibling no-store work in api/mcp/_rpc.ts (#4502).
 const MCP_CACHE_CONTROL = 'no-store, no-transform';
 const MAX_SSE_SESSIONS = 500;
 const MAX_SSE_STREAMS_PER_SESSION = 25;

@@ -8,18 +8,18 @@ description: "WorldMonitor MCP 服务器可能返回的每一种错误形态的�
   本页中的每个 code/envelope 都应对应到下面某一行；下面的每个
   emission 站点也都应出现在本页中。
 
-  - JSON-RPC envelope helpers           api/mcp/rpc.ts (rpcOk, rpcError)
-  - Method gate (405 + Allow)           api/mcp/handler.ts (mcpHandler method check)
-  - Top-level dispatch / -32600/-32601  api/mcp/handler.ts (POST body parse and dispatch switch)
-  - Auth -32001 / -32603 emitters       api/mcp/auth.ts (resolveAuthContext and entitlement checks)
-  - Per-minute -32029 + hit telemetry   api/mcp/auth.ts (applyPerMinuteLimit, applyAnonDiscoveryLimit, emitMcpRateLimitHit)
-  - Pro daily-cap -32029 (HTTP 429)     api/mcp/dispatch.ts (reserveDailyQuotaForRequest)
-  - Tool exec -32603                    api/mcp/dispatch.ts (dispatchToolsCall)
-  - _budget_exceeded envelope           api/mcp/dispatch.ts (budget cap handling)
-  - _jmespath_error envelope            api/mcp/jmespath.ts (applyJmespath)
-  - JMESPath caps                       api/mcp/constants.ts (JMESPATH_LIMITS)
-  - Prompts -32602                      api/mcp/prompts/index.ts (listPrompts, getPrompt)
-  - Resources -32602 / -32603           api/mcp/resources/index.ts (listResources, readResource)
+  - JSON-RPC envelope helpers           api/mcp/_rpc.ts (rpcOk, rpcError)
+  - Method gate (405 + Allow)           api/mcp/_handler.ts (mcpHandler method check)
+  - Top-level dispatch / -32600/-32601  api/mcp/_handler.ts (POST body parse and dispatch switch)
+  - Auth -32001 / -32603 emitters       api/mcp/_auth.ts (resolveAuthContext and entitlement checks)
+  - Per-minute -32029 + hit telemetry   api/mcp/_auth.ts (applyPerMinuteLimit, applyAnonDiscoveryLimit, emitMcpRateLimitHit)
+  - Pro daily-cap -32029 (HTTP 429)     api/mcp/_dispatch.ts (reserveDailyQuotaForRequest)
+  - Tool exec -32603                    api/mcp/_dispatch.ts (dispatchToolsCall)
+  - _budget_exceeded envelope           api/mcp/_dispatch.ts (budget cap handling)
+  - _jmespath_error envelope            api/mcp/_jmespath.ts (applyJmespath)
+  - JMESPath caps                       api/mcp/_constants.ts (JMESPATH_LIMITS)
+  - Prompts -32602                      api/mcp/prompts/_index.ts (listPrompts, getPrompt)
+  - Resources -32602 / -32603           api/mcp/resources/_index.ts (listResources, readResource)
 */}
 
 本页是实用参考：收到一个负载后，你可以查阅它，从而知道下一步该怎么做。服务器在三个独立层面发出失败信号 —— **HTTP 状态码**、**JSON-RPC `error.code`**，以及 **`result.content[0].text` 中的软行为信封** —— 一次失败可能触及其中一个、两个或全部三个层面。请由外向内排查：HTTP 状态码 → JSON-RPC 代码 → 软信封。
@@ -49,7 +49,7 @@ description: "WorldMonitor MCP 服务器可能返回的每一种错误形态的�
 
 ### `-32001` —— 未鉴权 / 凭证无效
 
-在 `api/mcp/auth.ts` 的六个发出站点触发，总是配对 HTTP **401** 和 `WWW-Authenticate` 头。这些站点归并为五个用户可见的触发点，按客户端命中顺序排列如下：
+在 `api/mcp/_auth.ts` 的六个发出站点触发，总是配对 HTTP **401** 和 `WWW-Authenticate` 头。这些站点归并为五个用户可见的触发点，按客户端命中顺序排列如下：
 
 1. **既无 `Authorization` bearer 也无 `X-WorldMonitor-Key`** —— 客户端在调用 `/mcp` 时未携带任何凭证。
 2. **`Authorization: Bearer <token>` 但 `<token>` 无效或已过期** —— 令牌无法解析到上下文（被撤销 / TTL 过期 / 从未由 `/api/oauth/token` 签发）。
@@ -90,9 +90,9 @@ Content-Type: application/json
 
 | 鉴权上下文                              | `message`                                                                           | 站点                                                    |
 |-------------------------------------------|-------------------------------------------------------------------------------------|---------------------------------------------------------|
-| `X-WorldMonitor-Key`                      | `Rate limit exceeded. Max 60 requests per minute per API key.`                      | `api/mcp/auth.ts` `applyPerMinuteLimit` API-key 分支  |
-| Pro OAuth bearer                          | `Rate limit exceeded. Max 60 requests per minute per Pro user.`                     | `api/mcp/auth.ts` `applyPerMinuteLimit` Pro 分支      |
-| 匿名发现路径上无凭证 | `Rate limit exceeded. Max 60 unauthenticated discovery requests per minute per IP.` | `api/mcp/auth.ts` `applyAnonDiscoveryLimit`             |
+| `X-WorldMonitor-Key`                      | `Rate limit exceeded. Max 60 requests per minute per API key.`                      | `api/mcp/_auth.ts` `applyPerMinuteLimit` API-key 分支  |
+| Pro OAuth bearer                          | `Rate limit exceeded. Max 60 requests per minute per Pro user.`                     | `api/mcp/_auth.ts` `applyPerMinuteLimit` Pro 分支      |
+| 匿名发现路径上无凭证 | `Rate limit exceeded. Max 60 unauthenticated discovery requests per minute per IP.` | `api/mcp/_auth.ts` `applyAnonDiscoveryLimit`             |
 
 示例负载（Pro 变体 —— env_key 客户端得到相同信封形状，但使用 API-key 的 message 字符串）：
 
@@ -132,7 +132,7 @@ Content-Type: application/json
 
 ### `-32600` —— 请求信封无效
 
-当请求体不是合法 JSON，或是合法 JSON 但缺少字符串类型的 `method` 字段时触发。位于 `api/mcp/handler.ts` 的两个站点。严格来说是客户端编码器 bug —— 格式良好的 JSON-RPC 客户端在生产中永远不会看到它。
+当请求体不是合法 JSON，或是合法 JSON 但缺少字符串类型的 `method` 字段时触发。位于 `api/mcp/_handler.ts` 的两个站点。严格来说是客户端编码器 bug —— 格式良好的 JSON-RPC 客户端在生产中永远不会看到它。
 
 ```json
 {
@@ -164,12 +164,12 @@ Content-Type: application/json
 
 | 触发条件                                                | 站点                              | 示例 `message`                                                          |
 |--------------------------------------------------------|-----------------------------------|----------------------------------------------------------------------------|
-| `tools/call` 缺少或 `name` 非字符串                 | `api/mcp/dispatch.ts` `dispatchToolsCall` 参数守卫 | `Invalid params: missing tool name`                                        |
-| `tools/call` 的 `name` 不在注册表中    | `api/mcp/dispatch.ts` `dispatchToolsCall` 注册表查找 | `Unknown tool: get_foo`                                                    |
-| `prompts/get` 缺少或 `name` 非字符串                | `api/mcp/handler.ts` `prompts/get` 分支          | `Invalid params: missing prompt name`                                      |
-| `prompts/get` 名称未知或缺少必填参数 | `api/mcp/prompts/index.ts` `buildPromptResponse`   | `Unknown prompt: …` / `Missing required argument "iso2" for prompt "country-briefing"` |
-| `resources/read` 缺少/未知/格式错误的 `uri`       | `api/mcp/resources/index.ts`（`buildPublicResourceResponse` / `buildResourceResponse`）  | `Invalid params: missing resource uri` / `Unknown resource uri "..."` |
-| `logging/setLevel` 级别非字符串或不在集合内 | `api/mcp/handler.ts` `logging/setLevel` 分支          | `Invalid params: level must be one of debug, info, notice, warning, error, critical, alert, emergency` |
+| `tools/call` 缺少或 `name` 非字符串                 | `api/mcp/_dispatch.ts` `dispatchToolsCall` 参数守卫 | `Invalid params: missing tool name`                                        |
+| `tools/call` 的 `name` 不在注册表中    | `api/mcp/_dispatch.ts` `dispatchToolsCall` 注册表查找 | `Unknown tool: get_foo`                                                    |
+| `prompts/get` 缺少或 `name` 非字符串                | `api/mcp/_handler.ts` `prompts/get` 分支          | `Invalid params: missing prompt name`                                      |
+| `prompts/get` 名称未知或缺少必填参数 | `api/mcp/prompts/_index.ts` `buildPromptResponse`   | `Unknown prompt: …` / `Missing required argument "iso2" for prompt "country-briefing"` |
+| `resources/read` 缺少/未知/格式错误的 `uri`       | `api/mcp/resources/_index.ts`（`buildPublicResourceResponse` / `buildResourceResponse`）  | `Invalid params: missing resource uri` / `Unknown resource uri "..."` |
+| `logging/setLevel` 级别非字符串或不在集合内 | `api/mcp/_handler.ts` `logging/setLevel` 分支          | `Invalid params: level must be one of debug, info, notice, warning, error, critical, alert, emergency` |
 
 ```json
 {
@@ -215,9 +215,9 @@ Content-Type: application/json
 
 | 触发条件                                         | `message`                                              | 站点                              |
 |-------------------------------------------------|--------------------------------------------------------|-----------------------------------|
-| OAuth 解析服务抛出（Convex 抖动）    | `Auth service temporarily unavailable. Try again.`     | `api/mcp/auth.ts` `resolveAuthContext` bearer 分支 |
-| `MCP_INTERNAL_HMAC_SECRET` 未设置（Pro 路径）     | `Service temporarily unavailable, retry in a moment.`  | `api/mcp/auth.ts` `runProPreChecks` 密钥预检 |
-| Pro 配额预留 Redis 失败（非上限）   | `Service temporarily unavailable, retry in a moment.`  | `api/mcp/dispatch.ts` `dispatchToolsCall` 配额预留 |
+| OAuth 解析服务抛出（Convex 抖动）    | `Auth service temporarily unavailable. Try again.`     | `api/mcp/_auth.ts` `resolveAuthContext` bearer 分支 |
+| `MCP_INTERNAL_HMAC_SECRET` 未设置（Pro 路径）     | `Service temporarily unavailable, retry in a moment.`  | `api/mcp/_auth.ts` `runProPreChecks` 密钥预检 |
+| Pro 配额预留 Redis 失败（非上限）   | `Service temporarily unavailable, retry in a moment.`  | `api/mcp/_dispatch.ts` `dispatchToolsCall` 配额预留 |
 
 三种情况的客户端恢复方式一致（遵循 `Retry-After: 5`）；message 仅用于日志分析时的区分。
 

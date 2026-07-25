@@ -3,14 +3,14 @@ import jmespath from 'jmespath';
 // Universal REST response projection — the gateway applies an optional
 // `?jmespath=<expr>` query parameter to any JSON GET response, mirroring the
 // `jmespath` argument the MCP server already exposes on every tool
-// (api/mcp/jmespath.ts). Agents reuse the SAME expressions across MCP and REST
+// (api/mcp/_jmespath.ts). Agents reuse the SAME expressions across MCP and REST
 // to project/reduce a payload server-side before it crosses the wire.
 //
 // The byte caps are kept identical to the MCP contract (JMESPATH_MAX_EXPR_BYTES
 // and JMESPATH_MAX_OUTPUT_BYTES) so an expression and its projected output have
 // the same acceptance envelope on both surfaces.
 
-// Mirrors api/mcp/constants.ts `JMESPATH_MAX_EXPR_BYTES`. Duplicated as a plain
+// Mirrors api/mcp/_constants.ts `JMESPATH_MAX_EXPR_BYTES`. Duplicated as a plain
 // constant so this edge-server helper stays free of MCP-module imports.
 export const REST_JMESPATH_MAX_EXPR_BYTES = 1024;
 export const REST_JMESPATH_MAX_OUTPUT_BYTES = 256 * 1024;

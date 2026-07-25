@@ -12,7 +12,7 @@
 // the burst/meter math unit-testable in isolation (inject the pipeline + date;
 // stub this module's decisions in the gateway-wiring test).
 //
-// Patterns cloned: api/mcp/quota.ts (INCR-first meter + DECR rollback),
+// Patterns cloned: api/mcp/_quota.ts (INCR-first meter + DECR rollback),
 // api/_rate-limit.js (lazy Upstash singleton, NODE_TEST_CONTEXT retry skip,
 // X-RateLimit-* header shape), server/_shared/pro-mcp-token.ts UTC helpers.
 
@@ -135,7 +135,7 @@ export interface MeterResult {
 /**
  * Increment the per-account daily meter and report whether the sold daily
  * allowance is now exceeded. INCR-first (atomic; no check-then-incr race), mirroring
- * api/mcp/quota.ts::reserveQuota.
+ * api/mcp/_quota.ts::reserveQuota.
  *
  * - `allowance < 0` (unlimited, e.g. enterprise) → no Redis call; never metered.
  * - Redis unavailable / pipeline failure → `metered:false`, `overLimit:false`

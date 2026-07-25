@@ -1,4 +1,4 @@
-import type { FreshnessCheck } from './types';
+import type { FreshnessCheck } from './_types';
 
 function parseFiniteRecordCount(raw: unknown): number | null {
   if (typeof raw === 'number') return Number.isFinite(raw) ? raw : null;

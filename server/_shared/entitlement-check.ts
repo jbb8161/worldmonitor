@@ -24,7 +24,7 @@ import { getCachedJson, setCachedJson } from './redis';
 // ---------------------------------------------------------------------------
 
 // Single source of truth for the billing-verification status union — imported
-// by api/mcp/types.ts, api/mcp/auth.ts, and api/mcp/billing-denial.ts so the
+// by api/mcp/_types.ts, api/mcp/_auth.ts, and api/mcp/_billing-denial.ts so the
 // four surfaces cannot silently drift when a status is added.
 export type BillingVerificationStatus =
   | 'subscription_lapsed'

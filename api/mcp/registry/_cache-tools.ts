@@ -1,6 +1,6 @@
 import ISO2_TO_ISO3 from '../../../shared/iso2-to-iso3.js';
 import { CII_RISK_SCORE_CACHE_KEYS } from '../../_cii-risk-cache-keys.js';
-import { DEFAULT_LIST_LIMIT } from '../constants';
+import { DEFAULT_LIST_LIMIT } from '../_constants';
 import {
   argBool,
   argNum,
@@ -21,8 +21,8 @@ import {
   pickMapKeysLike,
   pickNestedMap,
   selectDatasets,
-} from '../filters';
-import type { ToolDef } from '../types';
+} from '../_filters';
+import type { ToolDef } from '../_types';
 import {
   CHOKEPOINT_MONITOR_UI_URI,
   CONFLICT_EVENTS_UI_URI,
@@ -31,7 +31,7 @@ import {
   NATURAL_DISASTERS_UI_URI,
   NEWS_INTELLIGENCE_UI_URI,
   PREDICTION_MARKETS_UI_URI,
-} from '../ui/registry';
+} from '../ui/_registry';
 
 // Iran-events domain sunset (war ended 2026-07). Default OFF: drop the dormant
 // conflict:iran-events:v1 key from the get_conflict_events cache set so the MCP
