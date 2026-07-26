@@ -11,6 +11,13 @@
 // silently regresses on future middleware edits — Telegram's
 // sendMediaGroup failure mode ("WEBPAGE_CURL_FAILED") does not
 // surface as a CI failure anywhere else.
+//
+// middleware() is async (the passfort password gate awaits crypto.subtle
+// calls even on the pass-through path), so every call site here awaits it.
+// Tests below don't set PASSFORT_SECRET/PASSFORT_PASSWORD, so the gate's
+// loadConfig() returns null and it's a no-op — these tests exercise the
+// pre-existing bot gate exactly as before. See middleware-password-gate.test.mts
+// for the passfort-specific behavior.
 
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
@@ -37,7 +44,7 @@ const LEGACY_DATE_ONLY_CAROUSEL_PATH = '/api/brief/carousel/user_abc/2026-04-19/
 const OTHER_API_PATH = '/api/notifications';
 const MALFORMED_CAROUSEL_PATH = '/api/brief/carousel/admin/dashboard';
 
-function call(pathOrUrl: string, ua: string, headers: Record<string, string> = {}): Response | void {
+async function call(pathOrUrl: string, ua: string, headers: Record<string, string> = {}): Promise<Response | void> {
   const url = pathOrUrl.startsWith('http')
     ? pathOrUrl
     : `https://www.worldmonitor.app${pathOrUrl}`;
@@ -47,7 +54,7 @@ function call(pathOrUrl: string, ua: string, headers: Record<string, string> = {
       ...headers,
     },
   });
-  return middleware(req) as Response | void;
+  return (await middleware(req)) as Response | void;
 }
 
 describe('middleware bot gate / keyed API clients', () => {
@@ -55,19 +62,19 @@ describe('middleware bot gate / keyed API clients', () => {
   const USER_API_KEY = `wm_${'a'.repeat(40)}`;
   const ENTERPRISE_API_KEY = `wm_${'b'.repeat(48)}`;
 
-  it('passes a 40-hex user API key through when curl would otherwise be blocked', () => {
-    const res = call(KEYED_API_PATH, GENERIC_CURL_UA, { 'x-worldmonitor-key': USER_API_KEY });
+  it('passes a 40-hex user API key through when curl would otherwise be blocked', async () => {
+    const res = await call(KEYED_API_PATH, GENERIC_CURL_UA, { 'x-worldmonitor-key': USER_API_KEY });
     assert.equal(res, undefined, 'the gateway, not the UA gate, must validate a well-shaped user key');
   });
 
-  it('passes a 48-hex enterprise API key through when curl would otherwise be blocked', () => {
-    const res = call(KEYED_API_PATH, GENERIC_CURL_UA, { 'x-worldmonitor-key': ENTERPRISE_API_KEY });
+  it('passes a 48-hex enterprise API key through when curl would otherwise be blocked', async () => {
+    const res = await call(KEYED_API_PATH, GENERIC_CURL_UA, { 'x-worldmonitor-key': ENTERPRISE_API_KEY });
     assert.equal(res, undefined, 'the gateway, not the UA gate, must validate a well-shaped enterprise key');
   });
 
-  it('still blocks malformed and overlong wm_ keys with a curl UA', () => {
+  it('still blocks malformed and overlong wm_ keys with a curl UA', async () => {
     for (const apiKey of [`wm_${'c'.repeat(39)}`, `wm_${'d'.repeat(65)}`, 'wm_not-hex']) {
-      const res = call(KEYED_API_PATH, GENERIC_CURL_UA, { 'x-worldmonitor-key': apiKey });
+      const res = await call(KEYED_API_PATH, GENERIC_CURL_UA, { 'x-worldmonitor-key': apiKey });
       assert.ok(res instanceof Response, `${apiKey} must not bypass the UA gate`);
       assert.equal(res.status, 403);
     }
@@ -75,83 +82,83 @@ describe('middleware bot gate / keyed API clients', () => {
 });
 
 describe('middleware bot gate / carousel allowlist', () => {
-  it('passes TelegramBot through on the carousel route (the PR #3196 fix)', () => {
-    const res = call(CAROUSEL_PATH, TELEGRAM_BOT_UA);
+  it('passes TelegramBot through on the carousel route (the PR #3196 fix)', async () => {
+    const res = await call(CAROUSEL_PATH, TELEGRAM_BOT_UA);
     assert.equal(res, undefined, 'Telegram must be able to fetch carousel images');
   });
 
-  it('passes Slackbot through on the carousel route', () => {
-    const res = call(CAROUSEL_PATH, SLACKBOT_UA);
+  it('passes Slackbot through on the carousel route', async () => {
+    const res = await call(CAROUSEL_PATH, SLACKBOT_UA);
     assert.equal(res, undefined);
   });
 
-  it('passes Discordbot through on the carousel route', () => {
-    const res = call(CAROUSEL_PATH, DISCORDBOT_UA);
+  it('passes Discordbot through on the carousel route', async () => {
+    const res = await call(CAROUSEL_PATH, DISCORDBOT_UA);
     assert.equal(res, undefined);
   });
 
-  it('passes LinkedInBot through on the carousel route', () => {
-    const res = call(CAROUSEL_PATH, LINKEDINBOT_UA);
+  it('passes LinkedInBot through on the carousel route', async () => {
+    const res = await call(CAROUSEL_PATH, LINKEDINBOT_UA);
     assert.equal(res, undefined);
   });
 
-  it('still 403s curl on the carousel route (bot gate protects from non-social UAs)', () => {
-    const res = call(CAROUSEL_PATH, GENERIC_CURL_UA);
+  it('still 403s curl on the carousel route (bot gate protects from non-social UAs)', async () => {
+    const res = await call(CAROUSEL_PATH, GENERIC_CURL_UA);
     assert.ok(res instanceof Response, 'should return a Response, not pass through');
     assert.equal(res.status, 403);
   });
 
-  it('still 403s a generic "bot" UA on the carousel route', () => {
-    const res = call(CAROUSEL_PATH, GENERIC_SCRAPER_UA);
+  it('still 403s a generic "bot" UA on the carousel route', async () => {
+    const res = await call(CAROUSEL_PATH, GENERIC_SCRAPER_UA);
     assert.ok(res instanceof Response);
     assert.equal(res.status, 403);
   });
 
-  it('still 403s TelegramBot on non-carousel API routes (allowlist is scoped, not global)', () => {
-    const res = call(OTHER_API_PATH, TELEGRAM_BOT_UA);
+  it('still 403s TelegramBot on non-carousel API routes (allowlist is scoped, not global)', async () => {
+    const res = await call(OTHER_API_PATH, TELEGRAM_BOT_UA);
     assert.ok(res instanceof Response);
     assert.equal(res.status, 403);
   });
 
-  it('still 403s TelegramBot on malformed carousel paths (regex enforces route shape)', () => {
-    const res = call(MALFORMED_CAROUSEL_PATH, TELEGRAM_BOT_UA);
+  it('still 403s TelegramBot on malformed carousel paths (regex enforces route shape)', async () => {
+    const res = await call(MALFORMED_CAROUSEL_PATH, TELEGRAM_BOT_UA);
     assert.ok(res instanceof Response);
     assert.equal(res.status, 403);
   });
 
-  it('still 403s missing UA on the carousel route (short-UA guard)', () => {
-    const res = call(CAROUSEL_PATH, '');
+  it('still 403s missing UA on the carousel route (short-UA guard)', async () => {
+    const res = await call(CAROUSEL_PATH, '');
     assert.ok(res instanceof Response);
     assert.equal(res.status, 403);
   });
 
-  it('passes normal browsers through on the carousel route', () => {
-    const res = call(CAROUSEL_PATH, CHROME_UA);
+  it('passes normal browsers through on the carousel route', async () => {
+    const res = await call(CAROUSEL_PATH, CHROME_UA);
     assert.equal(res, undefined);
   });
 
-  it('passes normal browsers through on any API route', () => {
-    const res = call(OTHER_API_PATH, CHROME_UA);
+  it('passes normal browsers through on any API route', async () => {
+    const res = await call(OTHER_API_PATH, CHROME_UA);
     assert.equal(res, undefined);
   });
 
-  it('does not accept page 3+ on the carousel route (pageFromIndex only has 0/1/2)', () => {
-    const res = call('/api/brief/carousel/user_abc/2026-04-19-0800/3', TELEGRAM_BOT_UA);
+  it('does not accept page 3+ on the carousel route (pageFromIndex only has 0/1/2)', async () => {
+    const res = await call('/api/brief/carousel/user_abc/2026-04-19-0800/3', TELEGRAM_BOT_UA);
     assert.ok(res instanceof Response, 'out-of-range page must hit the bot gate');
     assert.equal(res.status, 403);
   });
 
-  it('does not accept non-slot segments on the carousel route', () => {
-    const res = call('/api/brief/carousel/user_abc/today/0', TELEGRAM_BOT_UA);
+  it('does not accept non-slot segments on the carousel route', async () => {
+    const res = await call('/api/brief/carousel/user_abc/today/0', TELEGRAM_BOT_UA);
     assert.ok(res instanceof Response);
     assert.equal(res.status, 403);
   });
 
-  it('does not accept the pre-slot YYYY-MM-DD shape (slot rollout parity)', () => {
+  it('does not accept the pre-slot YYYY-MM-DD shape (slot rollout parity)', async () => {
     // Once the composer moves to slot URLs, legacy date-only paths
     // should NOT leak the social allowlist — they correspond to
     // expired pre-rollout links whose Redis keys no longer exist.
-    const res = call(LEGACY_DATE_ONLY_CAROUSEL_PATH, TELEGRAM_BOT_UA);
+    const res = await call(LEGACY_DATE_ONLY_CAROUSEL_PATH, TELEGRAM_BOT_UA);
     assert.ok(res instanceof Response);
     assert.equal(res.status, 403);
   });
@@ -196,8 +203,8 @@ describe('middleware PUBLIC_API_PATHS — secret-authed internal endpoints bypas
 
   for (const path of ALLOWED_PATHS) {
     for (const { label, ua } of TRIGGERS) {
-      it(`${path} bypasses the UA gate (${label})`, () => {
-        const res = call(path, ua);
+      it(`${path} bypasses the UA gate (${label})`, async () => {
+        const res = await call(path, ua);
         assert.equal(res, undefined, `${path} must pass through the middleware (no 403); its own auth gate handles access`);
       });
     }
@@ -216,8 +223,8 @@ describe('middleware PUBLIC_API_PATHS — secret-authed internal endpoints bypas
 
   for (const path of SIBLING_PATHS) {
     for (const { label, ua } of TRIGGERS) {
-      it(`${path} does NOT bypass the UA gate — ${label}`, () => {
-        const res = call(path, ua);
+      it(`${path} does NOT bypass the UA gate — ${label}`, async () => {
+        const res = await call(path, ua);
         assert.ok(res instanceof Response, `${path} must still hit the 403 guard under ${label}`);
         assert.equal(res.status, 403);
       });
@@ -243,14 +250,14 @@ describe('middleware /api/llms.txt — AI crawlers reach the agent-discovery fil
   ];
 
   for (const { label, ua } of CRAWLER_UAS) {
-    it(`passes ${label} through to /api/llms.txt`, () => {
-      const res = call('/api/llms.txt', ua);
+    it(`passes ${label} through to /api/llms.txt`, async () => {
+      const res = await call('/api/llms.txt', ua);
       assert.equal(res, undefined, '/api/llms.txt must pass through the bot gate for AI crawlers');
     });
   }
 
-  it('still 403s a crawler on a sibling /api path (bypass is exact, not a prefix)', () => {
-    const res = call('/api/llms', 'CCBot/2.0 (https://commoncrawl.org/faq/)');
+  it('still 403s a crawler on a sibling /api path (bypass is exact, not a prefix)', async () => {
+    const res = await call('/api/llms', 'CCBot/2.0 (https://commoncrawl.org/faq/)');
     assert.ok(res instanceof Response);
     assert.equal(res.status, 403);
   });
@@ -272,14 +279,14 @@ describe('middleware /api/product-catalog — agents reach the public pricing ca
   ];
 
   for (const { label, ua } of CRAWLER_UAS) {
-    it(`passes ${label} through to /api/product-catalog`, () => {
-      const res = call('/api/product-catalog', ua);
+    it(`passes ${label} through to /api/product-catalog`, async () => {
+      const res = await call('/api/product-catalog', ua);
       assert.equal(res, undefined, '/api/product-catalog must pass through the bot gate; it is a public discovery surface');
     });
   }
 
-  it('still 403s a crawler on a sibling /api path (bypass is exact, not a prefix)', () => {
-    const res = call('/api/product', 'CCBot/2.0 (https://commoncrawl.org/faq/)');
+  it('still 403s a crawler on a sibling /api path (bypass is exact, not a prefix)', async () => {
+    const res = await call('/api/product', 'CCBot/2.0 (https://commoncrawl.org/faq/)');
     assert.ok(res instanceof Response);
     assert.equal(res.status, 403);
   });
@@ -293,71 +300,71 @@ describe('middleware /api/product-catalog — agents reach the public pricing ca
 // still handshake correctly.
 
 describe('middleware /mcp — variant subdomains redirect to apex, POST stays', () => {
-  it('redirects GET /mcp from tech.worldmonitor.app to apex', () => {
-    const res = call('https://tech.worldmonitor.app/mcp', CHROME_UA);
+  it('redirects GET /mcp from tech.worldmonitor.app to apex', async () => {
+    const res = await call('https://tech.worldmonitor.app/mcp', CHROME_UA);
     assert.ok(res instanceof Response);
     assert.equal(res.status, 308);
     assert.equal(res.headers.get('location'), 'https://worldmonitor.app/mcp');
   });
 
-  it('redirects HEAD /mcp from finance.worldmonitor.app to apex', () => {
+  it('redirects HEAD /mcp from finance.worldmonitor.app to apex', async () => {
     const req = new Request('https://finance.worldmonitor.app/mcp', { method: 'HEAD' });
-    const res = middleware(req) as Response | void;
+    const res = (await middleware(req)) as Response | void;
     assert.ok(res instanceof Response);
     assert.equal(res.status, 308);
     assert.equal(res.headers.get('location'), 'https://worldmonitor.app/mcp');
   });
 
-  it('redirects /mcp from every variant subdomain', () => {
+  it('redirects /mcp from every variant subdomain', async () => {
     for (const host of ['tech', 'finance', 'commodity', 'happy', 'energy']) {
-      const res = call(`https://${host}.worldmonitor.app/mcp`, CHROME_UA);
+      const res = await call(`https://${host}.worldmonitor.app/mcp`, CHROME_UA);
       assert.ok(res instanceof Response, `${host} must redirect`);
       assert.equal(res.status, 308, `${host} redirect status`);
       assert.equal(res.headers.get('location'), 'https://worldmonitor.app/mcp', `${host} redirect location`);
     }
   });
 
-  it('does NOT redirect GET /mcp from apex or www', () => {
-    assert.equal(call('https://worldmonitor.app/mcp', CHROME_UA), undefined);
-    assert.equal(call('https://www.worldmonitor.app/mcp', CHROME_UA), undefined);
+  it('does NOT redirect GET /mcp from apex or www', async () => {
+    assert.equal(await call('https://worldmonitor.app/mcp', CHROME_UA), undefined);
+    assert.equal(await call('https://www.worldmonitor.app/mcp', CHROME_UA), undefined);
   });
 
-  it('does NOT redirect POST /mcp from a variant subdomain (MCP handshake)', () => {
+  it('does NOT redirect POST /mcp from a variant subdomain (MCP handshake)', async () => {
     const req = new Request('https://tech.worldmonitor.app/mcp', {
       method: 'POST',
       headers: { 'user-agent': CHROME_UA, 'Content-Type': 'application/json' },
       body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'initialize', params: {} }),
     });
-    const res = middleware(req) as Response | void;
+    const res = (await middleware(req)) as Response | void;
     assert.equal(res, undefined, 'POST /mcp must fall through to the /api/mcp rewrite');
   });
 
-  it('does NOT redirect OPTIONS /mcp from a variant subdomain', () => {
+  it('does NOT redirect OPTIONS /mcp from a variant subdomain', async () => {
     const req = new Request('https://tech.worldmonitor.app/mcp', {
       method: 'OPTIONS',
       headers: { 'user-agent': CHROME_UA },
     });
-    const res = middleware(req) as Response | void;
+    const res = (await middleware(req)) as Response | void;
     assert.equal(res, undefined, 'OPTIONS /mcp must fall through to the /api/mcp rewrite');
   });
 
-  it('does NOT redirect variant transport GETs with SSE or replay headers', () => {
+  it('does NOT redirect variant transport GETs with SSE or replay headers', async () => {
     const mixedCaseSse = new Request('https://tech.worldmonitor.app/mcp', {
       headers: { Accept: 'Text/Event-Stream' },
     });
-    assert.equal(middleware(mixedCaseSse), undefined, 'mixed-case SSE Accept must fall through to the transport');
+    assert.equal(await middleware(mixedCaseSse), undefined, 'mixed-case SSE Accept must fall through to the transport');
 
     const replay = new Request('https://tech.worldmonitor.app/mcp', {
       headers: { Accept: 'application/json', 'Last-Event-ID': 'stream:0' },
     });
-    assert.equal(middleware(replay), undefined, 'Last-Event-ID replay must stay on the session host');
+    assert.equal(await middleware(replay), undefined, 'Last-Event-ID replay must stay on the session host');
   });
 
-  it('redirects when SSE is explicitly unacceptable', () => {
+  it('redirects when SSE is explicitly unacceptable', async () => {
     const req = new Request('https://tech.worldmonitor.app/mcp', {
       headers: { Accept: 'text/event-stream;q=0, text/html' },
     });
-    const res = middleware(req) as Response | void;
+    const res = (await middleware(req)) as Response | void;
     assert.ok(res instanceof Response);
     assert.equal(res.status, 308);
     assert.equal(res.headers.get('location'), 'https://worldmonitor.app/mcp');

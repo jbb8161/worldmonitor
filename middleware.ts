@@ -1,3 +1,12 @@
+// passfort (github.com/tommyv1987/passfort): password gate for pre-launch/
+// preview deployments. `passfort init` (its own scaffolding CLI) only writes
+// a Next.js middleware.ts — this project is Vite, not Next.js, so that command
+// refuses to run here ("Not a Next.js project"). handlePasswordProtect is the
+// framework-agnostic core it delegates to (plain Web Request/Response, no
+// Next.js types), which is what this file already uses for its own handler
+// signature — a direct fit. See SELF_HOSTING.md for the required env vars.
+import { handlePasswordProtect } from '@tommyvez/passfort';
+
 const BOT_UA =
   /bot|crawl|spider|slurp|archiver|wget|curl\/|python-requests|scrapy|httpclient|go-http|java\/|libwww|perl|ruby|php\/|ahrefsbot|semrushbot|mj12bot|dotbot|baiduspider|yandexbot|sogou|bytespider|petalbot|gptbot|claudebot|ccbot/i;
 
@@ -151,11 +160,25 @@ function escHtml(s: string): string {
     .replace(/'/g, '&#39;');
 }
 
-export default function middleware(request: Request) {
+export default async function middleware(request: Request) {
   const url = new URL(request.url);
   const ua = request.headers.get('user-agent') ?? '';
   const path = url.pathname;
   const host = normalizeHost(request.headers.get('host') ?? url.hostname);
+
+  // passfort password gate. Scoped to non-API paths only: /api/* (RSS proxy,
+  // MCP, health checks, cron probes, etc.) must stay reachable without a
+  // password — both for the dashboard's own client-side fetches (which DO
+  // carry the session cookie once a visitor authenticates, so this isn't
+  // needed for the app to keep working post-login) and for external
+  // integrations/monitoring that can't submit a password at all. When
+  // PASSFORT_SECRET/PASSFORT_PASSWORD (or PASSFORT_HASH) aren't set,
+  // loadConfig() returns null and this is a no-op — safe to ship on every
+  // variant, not just a gated preview.
+  if (!path.startsWith('/api/')) {
+    const gateResponse = await handlePasswordProtect({ request, env: process.env });
+    if (gateResponse) return gateResponse;
+  }
 
   if (path === '/' && hasLegacyDashboardRootState(url.searchParams)) {
     const dashboardUrl = new URL(request.url);
@@ -359,5 +382,12 @@ export default function middleware(request: Request) {
 }
 
 export const config = {
-  matcher: ['/', '/mcp', '/api/:path*'],
+  // '/((?!api).*)' extends the matcher beyond the pre-existing '/' and '/mcp'
+  // entries so the passfort gate above actually runs on dashboard/app routes
+  // (e.g. '/dashboard', deep links) — previously nothing but '/', '/mcp', and
+  // '/api/:path*' triggered this middleware at all. Deliberately excludes
+  // /api/* only; unlike a typical Next.js app there's no /_next/static to
+  // carve out, and gating static assets too is harmless (they're never
+  // fetched directly without the page that references them).
+  matcher: ['/', '/mcp', '/api/:path*', '/((?!api).*)'],
 };

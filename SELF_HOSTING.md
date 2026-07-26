@@ -238,6 +238,94 @@ server-side digest support for `auspex` later, per-feed fallback can be
 turned back off for it from the dashboard's Settings, or by changing that
 default in code.
 
+### ☁️ Deploying a variant to Vercel (e.g. AUSPEX)
+
+To deploy a specific variant (rather than the Docker self-host path above)
+to your own Vercel project:
+
+1. **Set `VITE_VARIANT`** in Vercel → Project → Settings → Environment
+   Variables, e.g. `VITE_VARIANT=auspex`. Vite reads this directly from the
+   environment at build time regardless of which build command runs it.
+2. **Build command:** the default Vercel build command runs `npm run build`,
+   which does **not** set `VITE_VARIANT` itself and runs a different set of
+   steps than the variant scripts (`build:blog`, `build:crawlable-corpus`,
+   `build:content-corpus` — marketing/SEO content for the main
+   worldmonitor.app site, not needed for a standalone variant deploy). For
+   AUSPEX specifically, override the Vercel **Build Command** to
+   `npm run build:auspex` instead — it runs the OpenAPI + agent-skills
+   generation steps the API surface depends on, and reads `VITE_VARIANT`
+   from the same environment variable set in step 1.
+3. **No `vercel.json` changes needed.** The `functions`/rewrite config in
+   `vercel.json` is shared across every variant; nothing in it references
+   `auspex` or the production subdomains (tech/finance/commodity/happy/
+   energy) in a way that would conflict with or need adjusting for a
+   standalone AUSPEX deployment — see `src/config/auspex-meta.ts` for why
+   AUSPEX's branding metadata is deliberately kept out of the
+   `variant-meta.ts` file that the production-subdomain contract test
+   (`tests/deploy-config.test.mjs`) cross-checks.
+4. **`scripts/vercel-ignore.sh`** (Vercel's "Ignored Build Step") skips
+   builds on `main` when a push touches nothing under `src/`, `api/`,
+   `server/`, `vite.config.ts`, `vercel.json`, `middleware.ts`, etc. — this
+   only matters if you're pushing to `main` on the same Vercel project as
+   another variant; a fresh branch/project with web-relevant changes always
+   builds.
+
+Verified locally: `npm run build:auspex` succeeds end to end (security
+scan, OpenAPI generation, agent-skills build, typecheck, `vite build`) and
+produces a `dist/dashboard.html` with the correct AUSPEX `<title>`.
+
+### 🔒 Password-protecting a preview deployment (passfort)
+
+Before sharing a preview URL for review, gate the whole site behind a
+password using [passfort](https://github.com/tommyv1987/passfort)
+(`@tommyvez/passfort` — works on Vercel's free Hobby plan, no paid
+Password Protection add-on needed).
+
+**Why not `npx passfort init`:** its scaffolding CLI only knows how to write
+a Next.js `middleware.ts`/`proxy.ts` (it checks for a `next` dependency in
+`package.json` and refuses otherwise) — this project is Vite, not Next.js.
+Instead, this repo's `middleware.ts` imports `handlePasswordProtect`
+directly from `@tommyvez/passfort`'s framework-agnostic core (plain Web
+`Request`/`Response`, no Next.js types), which is what the Next.js adapter
+itself delegates to under the hood. This is already wired in — self-hosters
+don't need to run any passfort command; only the environment variables
+below need setting.
+
+**Required environment variables** (set in Vercel → Project → Settings →
+Environment Variables — never commit real values):
+
+| Variable | Required | Description |
+| --- | --- | --- |
+| `PASSFORT_SECRET` | Yes, to enable the gate | Min 16 chars, signs the session cookie. Generate: `openssl rand -base64 24` |
+| `PASSFORT_PASSWORD` | Yes\* | Plain-text password (quick start) |
+| `PASSFORT_HASH` | Yes\* | PBKDF2 hash instead of a plain password — generate with `npx passfort hash "your-password"` |
+| `PASSFORT_ENABLED` | No | Set to `false` to disable the gate without removing the middleware code; redeploy to flip it back |
+
+\*Use either `PASSFORT_PASSWORD` or `PASSFORT_HASH`, not both.
+
+**Scope:** the gate covers every page route (`/`, `/dashboard`, deep links)
+but deliberately **excludes `/api/*` entirely** — the RSS proxy, MCP
+endpoint, health checks, and every other API route stay reachable without a
+password. This matters for two reasons: the dashboard's own client-side
+`fetch()` calls to `/api/*` need to keep working even for an authenticated
+visitor (they *do* carry the session cookie automatically once you're past
+the login form, but excluding `/api/*` is simpler and also covers
+unauthenticated callers), and external integrations, uptime monitors, and
+MCP clients can't submit a password at all.
+
+When none of `PASSFORT_SECRET`/`PASSFORT_PASSWORD`/`PASSFORT_HASH` are set,
+the gate is a no-op — every other variant's deployment is unaffected by
+this being wired into `middleware.ts` for everyone.
+
+Verified locally (`tests/middleware-password-gate.test.mts`): an
+unauthenticated request to `/` or any deep link gets a 401 with the
+password form; a wrong password re-shows the form; the correct password
+sets a signed session cookie and redirects; a valid session cookie passes
+subsequent requests through; a forged/invalid cookie is rejected; and
+`/api/rss-proxy`, `/api/health`, `/api/version`, `/api/news/v1/*`, and
+`/api/mcp` all pass through with no session and no password, even with the
+gate fully configured.
+
 ## 🌐 Connecting to External Infrastructure
 
 ### Shared Redis (optional)
