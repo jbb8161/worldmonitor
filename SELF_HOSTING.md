@@ -303,6 +303,16 @@ Environment Variables — never commit real values):
 
 \*Use either `PASSFORT_PASSWORD` or `PASSFORT_HASH`, not both.
 
+**Env var names are case-sensitive and must match exactly.** A common typo
+is entering these as `PASSPORT_*` on the Vercel dashboard instead of
+`PASSFORT_*` — Vercel accepts the misnamed variable without complaint,
+and since none of `PASSFORT_SECRET`/`PASSFORT_PASSWORD`/`PASSFORT_HASH`
+are actually set, the gate silently falls back to its no-op behavior
+(see below) rather than erroring. The site deploys and looks fine, it's
+just left completely unprotected. Double-check the exact variable names
+in the Vercel dashboard against this table if the gate doesn't seem to
+be prompting for a password after deploy.
+
 **Scope:** the gate covers every page route (`/`, `/dashboard`, deep links)
 but deliberately **excludes `/api/*` entirely** — the RSS proxy, MCP
 endpoint, health checks, and every other API route stay reachable without a
