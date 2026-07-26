@@ -15,8 +15,22 @@ import { CHROME_UA } from '../../../_shared/constants';
 import { isProviderAvailable } from '../../../_shared/llm-health';
 import { sanitizeHeadlinesLight, sanitizeHeadlines, sanitizeForPrompt } from '../../../_shared/llm-sanitize.js';
 import { isCallerPremium } from '../../../_shared/premium-check';
+import { isEntitlementBackendConfigured } from '../../../_shared/entitlement-check';
 import { stripThinkingTags } from '../../../_shared/llm';
 import { buildLlmCallEvent, deliverUsageEvents } from '../../../_shared/usage';
+
+// AUSPEX is self-hosted only (see SELF_HOSTING.md) — its operator has no
+// Clerk/Convex billing account to obtain a Pro subscription through, so
+// gating their own configured LLM provider (Ollama/OpenRouter/Groq — see
+// getProviderCredentials) behind isCallerPremium() would make the premium
+// check unsatisfiable rather than protective for that deployment. Scoped to
+// variant === 'auspex' AND both Clerk and Convex being provably unconfigured
+// (this is a server-only env-var check, not something a client request can
+// influence) so a spoofed `variant: 'auspex'` on the real worldmonitor.app
+// deployment — which always has both configured — cannot dodge the gate.
+function isUnconfiguredSelfHost(): boolean {
+  return !process.env.CLERK_SECRET_KEY && !isEntitlementBackendConfigured();
+}
 
 // Best-effort llm_call telemetry (#4895). This handler bypasses callLlm (the
 // client picks the provider), so it emits its own events.
@@ -67,7 +81,7 @@ export async function summarizeArticle(
   const isPremium = await isCallerPremium(ctx.request);
   const { provider, mode = 'brief', geoContext = '', variant = 'full', lang = 'en' } = req;
   const systemAppend = isPremium && typeof req.systemAppend === 'string' ? req.systemAppend : '';
-  const requiresPremium = mode !== 'translate';
+  const requiresPremium = mode !== 'translate' && !(variant === 'auspex' && isUnconfiguredSelfHost());
 
   const MAX_HEADLINES = 10;
   const MAX_HEADLINE_LEN = 500;

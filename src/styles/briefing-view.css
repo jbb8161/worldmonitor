@@ -1,0 +1,193 @@
+/* AUSPEX content-ideation Briefing view — see src/briefing-window.ts.
+   Loaded via dynamic import() only when SITE_VARIANT === 'auspex' and the
+   briefing route is active, so this costs other variants nothing. */
+
+.briefing-shell {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 24px 20px 60px;
+  color: var(--text);
+  font-family: var(--font-body);
+}
+
+.briefing-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  padding-bottom: 20px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 20px;
+}
+
+.briefing-title {
+  display: block;
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--accent);
+  letter-spacing: 0.02em;
+}
+
+.briefing-subtitle {
+  margin: 6px 0 0;
+  font-size: 13px;
+  color: var(--text-dim);
+  max-width: 52ch;
+}
+
+.briefing-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.briefing-refresh-btn {
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--border-strong);
+  border-radius: 6px;
+  padding: 8px 14px;
+  font-size: 12px;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.briefing-refresh-btn:hover {
+  background: var(--surface-hover);
+}
+
+.briefing-globe-link {
+  font-size: 12px;
+  color: var(--text-dim);
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.briefing-globe-link:hover {
+  color: var(--text);
+  text-decoration: underline;
+}
+
+.briefing-status {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-bottom: 16px;
+  min-height: 16px;
+}
+
+.briefing-empty {
+  color: var(--text-dim);
+  font-size: 13px;
+  padding: 40px 0;
+  text-align: center;
+}
+
+.briefing-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.briefing-card {
+  display: flex;
+  gap: 14px;
+  background: var(--panel-bg);
+  border: 1px solid var(--panel-border);
+  border-radius: 8px;
+  padding: 16px;
+}
+
+.briefing-card-rank {
+  flex-shrink: 0;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-faint);
+  min-width: 28px;
+}
+
+.briefing-card-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.briefing-card-meta {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  font-size: 11px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 6px;
+}
+
+.briefing-card-headline {
+  font-size: 16px;
+  font-weight: 600;
+  margin: 0 0 8px;
+  line-height: 1.35;
+}
+
+.briefing-card-headline a {
+  color: var(--text);
+  text-decoration: none;
+}
+
+.briefing-card-headline a:hover {
+  text-decoration: underline;
+}
+
+.briefing-card-angle {
+  min-height: 1em;
+}
+
+.briefing-card-angle-text {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--text-secondary);
+  border-left: 2px solid var(--accent);
+  padding-left: 10px;
+}
+
+.briefing-card-angle-pending {
+  margin: 0;
+  font-size: 12px;
+  color: var(--text-faint);
+  font-style: italic;
+}
+
+.briefing-card-related {
+  margin-top: 10px;
+  font-size: 12px;
+  color: var(--text-dim);
+}
+
+.briefing-card-related summary {
+  cursor: pointer;
+  color: var(--text-muted);
+}
+
+.briefing-card-related ul {
+  margin: 8px 0 0;
+  padding-left: 18px;
+}
+
+.briefing-card-related li {
+  margin-bottom: 4px;
+}
+
+.briefing-card-related a {
+  color: var(--text-secondary);
+  text-decoration: none;
+}
+
+.briefing-card-related a:hover {
+  text-decoration: underline;
+}
+
+.briefing-card-related-source {
+  color: var(--text-faint);
+}

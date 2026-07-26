@@ -326,6 +326,59 @@ subsequent requests through; a forged/invalid cookie is rejected; and
 `/api/mcp` all pass through with no session and no password, even with the
 gate fully configured.
 
+### 🤖 Getting real AI content angles on the Briefing view
+
+The Briefing's suggested content angle per story reuses the same
+`summarize-article` RPC and Ollama → OpenRouter → Groq → browser-T5
+provider chain the rest of the app uses. Since `auspex` has no
+Clerk/Convex billing account to speak of, the RPC's premium check is
+bypassed automatically for `auspex` requests *when your
+deployment has neither `CLERK_SECRET_KEY` nor a configured Convex
+entitlement backend (`CONVEX_SITE_URL` + `CONVEX_SERVER_SHARED_SECRET`) set*
+— true for essentially every self-hosted `auspex` install. That only
+removes the auth requirement; a provider still needs real credentials
+behind it, or every angle falls back to the on-device browser T5 model
+(functional, but much weaker than a real LLM):
+
+- **Docker/self-hosted with your own LLM:** set `OLLAMA_API_URL` (see
+  [Self-Hosted LLM](#self-hosted-llm) below) — reachable because the
+  sidecar sets `LOCAL_API_MODE`, which lifts the localhost-only allowlist
+  `getProviderCredentials()` otherwise enforces for the `ollama` provider.
+- **Deployed on Vercel (no Docker sidecar):** `OLLAMA_API_URL` is only
+  ever allowed to point at `localhost`/`127.0.0.1`/`host.docker.internal`
+  outside a Docker/desktop deployment (`server/_shared/llm.ts`'s
+  `OLLAMA_HOST_ALLOWLIST`) — a Vercel function cannot reach an Ollama
+  instance running on your own machine or network through that
+  allowlist, so `ollama` will always be skipped there regardless of the
+  premium-gate fix. Set **`GROQ_API_KEY`** as a Vercel project
+  environment variable instead (read directly via `process.env.GROQ_API_KEY`
+  in `server/_shared/llm.ts`) — recommended over `OPENROUTER_API_KEY` for
+  this specific use case: Groq's free tier needs no credit card and
+  comfortably covers occasional angle generation for a small team, and
+  short content-angle summaries don't need access to closed frontier
+  models. `OPENROUTER_API_KEY` also works (tried first, ahead of Groq, in
+  the client's provider order) if you'd rather route through OpenRouter,
+  but Groq alone is enough for `generateSummary()`/the Briefing's angle
+  generator to produce a real synthesized angle instead of falling
+  through to browser T5.
+
+  Angle generation is Redis-cached server-side for 24h keyed on the
+  cluster's headline set (`CACHE_TTL_SECONDS` in
+  `server/worldmonitor/news/v1/_shared.ts`), shared across every caller
+  hitting the same deployment — so multiple teammates opening the
+  Briefing the same day reuse the same cached angle rather than each
+  triggering a fresh Groq call, keeping usage well inside the free tier.
+  **This caching only exists if `UPSTASH_REDIS_REST_URL` and
+  `UPSTASH_REDIS_REST_TOKEN` are also set** (documented under "Cross-User
+  Cache" in `.env.example`) — without them, `cachedFetchJsonWithMeta()`
+  in `server/_shared/redis.ts` treats every read as a miss and every
+  write as a silent no-op (no error, just zero caching), so every angle
+  on every page load becomes a fresh Groq call. Create a free database at
+  [upstash.com](https://upstash.com/) (or via Vercel's Upstash
+  marketplace integration, which populates the same two vars) and set
+  those two env vars in the Vercel project before relying on the
+  free-tier-is-enough reasoning above.
+
 ## 🌐 Connecting to External Infrastructure
 
 ### Shared Redis (optional)

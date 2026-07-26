@@ -100,3 +100,46 @@ describe("summarizeArticle handler premium mode gate", () => {
     expect(result.error).not.toBe("Pro subscription required");
   });
 });
+
+describe("summarizeArticle handler — AUSPEX self-host premium bypass", () => {
+  test("anonymous AUSPEX request bypasses the gate when Clerk/Convex are both unconfigured", async () => {
+    delete process.env.GROQ_API_KEY;
+
+    const result = await summarizeArticle(makeContext(), { ...request("brief"), variant: "auspex" });
+
+    // Reaches provider dispatch (skipped for missing credentials) instead of
+    // being rejected for lacking a Pro subscription.
+    expect(result).toMatchObject({
+      fallback: true,
+      status: "SUMMARIZE_STATUS_SKIPPED",
+      statusDetail: "GROQ_API_KEY not configured",
+    });
+    expect(result.error).not.toBe("Pro subscription required");
+  });
+
+  test("AUSPEX request still requires premium when CLERK_SECRET_KEY is configured", async () => {
+    process.env.CLERK_SECRET_KEY = "sk_test_clerk_configured";
+
+    const result = await summarizeArticle(makeContext(), { ...request("brief"), variant: "auspex" });
+
+    expect(result.error).toBe("Pro subscription required");
+    expect(globalThis.fetch).not.toHaveBeenCalled();
+  });
+
+  test("AUSPEX request still requires premium when the Convex entitlement backend is configured", async () => {
+    process.env.CONVEX_SITE_URL = "https://example.convex.site";
+    process.env.CONVEX_SERVER_SHARED_SECRET = "convex-shared-secret";
+
+    const result = await summarizeArticle(makeContext(), { ...request("brief"), variant: "auspex" });
+
+    expect(result.error).toBe("Pro subscription required");
+    expect(globalThis.fetch).not.toHaveBeenCalled();
+  });
+
+  test("non-AUSPEX variants are unaffected by the self-host bypass even when Clerk/Convex are unconfigured", async () => {
+    const result = await summarizeArticle(makeContext(), { ...request("brief"), variant: "full" });
+
+    expect(result.error).toBe("Pro subscription required");
+    expect(globalThis.fetch).not.toHaveBeenCalled();
+  });
+});

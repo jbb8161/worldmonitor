@@ -446,6 +446,14 @@ if (urlParams.get('settings') === '1') {
       m.initLiveChannelsWindow();
     }
   );
+} else if (SITE_VARIANT === 'auspex' && location.pathname !== '/globe') {
+  // AUSPEX's default landing view is the content-ideation Briefing, not the
+  // globe/map dashboard — the dashboard stays reachable at /globe (App boots
+  // normally there, below). Every other variant is unaffected: this branch
+  // only matches when SITE_VARIANT === 'auspex'.
+  void Promise.all([import('./styles/briefing-view.css'), import('./briefing-window')]).then(
+    ([, m]) => m.initBriefingView()
+  );
 } else {
   installUtmInterceptor();
   markLcpDebug('wm:boot:app-construct');
