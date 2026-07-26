@@ -4,6 +4,26 @@ All notable changes to World Monitor are documented here.
 
 ## [Unreleased]
 
+### Added
+
+- **AUSPEX Briefing view** — the `auspex` variant (cybersecurity/fintech/fraud
+  intelligence, self-hosted only) now defaults to a content-ideation
+  "Briefing" instead of the globe/map dashboard. It fetches the 10
+  fraud/fintech/crypto/security/AI feed categories, clusters near-duplicate
+  stories with the existing lexical-similarity story-identity matcher, ranks
+  clusters on recency + source corroboration + source tier + an
+  enforcement/litigation keyword signal, and generates a one-to-two sentence
+  suggested content angle per top-ranked cluster (why the story matters, what
+  the writable hook is) by reusing the existing Ollama → OpenRouter → Groq →
+  browser-T5 summarization chain. Singleton (single-source) clusters still
+  get an angle — single-source regulatory/enforcement stories are often
+  exactly what's worth writing about in this space. The globe/map dashboard
+  remains reachable at `/globe`; every other variant is unaffected. How many
+  top clusters receive an AI-generated angle defaults to 8, tunable via
+  `VITE_AUSPEX_BRIEFING_ANGLE_LIMIT`. See `SELF_HOSTING.md` for wiring up a
+  real LLM provider (Groq recommended) and the Redis cache that keeps a
+  multi-person team's usage inside the free tier.
+
 ### Changed
 
 - **CII formula `v8`** — fixed dead UCDP conflict-floor attribution. The server
