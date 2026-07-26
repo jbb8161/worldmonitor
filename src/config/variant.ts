@@ -38,5 +38,14 @@ export const SITE_VARIANT: string = (() => {
     return buildVariant;
   }
 
-  return 'full';
+  // No recognized multi-tenant subdomain matched. The shared worldmonitor.app
+  // build (VITE_VARIANT unset/'full') relies entirely on the hostname checks
+  // above to differentiate tech./finance./etc — buildVariant is 'full' there
+  // regardless, so this is a no-op for that deployment. But a standalone,
+  // single-variant build deployed to an arbitrary hostname (e.g. AUSPEX on
+  // its own Vercel project's *.vercel.app URL, or any future custom domain
+  // that isn't a recognized subdomain) has no ambiguity to resolve at
+  // runtime — its own build-time VITE_VARIANT is authoritative. Hardcoding
+  // 'full' here previously ignored that value for any such hostname.
+  return buildVariant;
 })();

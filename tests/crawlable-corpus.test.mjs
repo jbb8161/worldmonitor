@@ -105,8 +105,8 @@ describe('crawlable corpus generator', () => {
     assert.ok(data.countries.some((country) => country.slug === 'norway' && country.rank === 1));
     assert.ok(data.chokepoints.some((chokepoint) => chokepoint.slug === 'strait-of-hormuz' && chokepoint.id === 'hormuz_strait'));
     assert.ok(data.glossaryTerms.some((term) => term.slug === 'country-resilience-index'));
-    assert.ok(data.changelog[0].bullets[0].includes('server scorer read non-existent'));
-    assert.ok(data.changelog[0].bullets[0].includes('methodology_version is now v8'));
+    assert.ok(data.changelog[0].bullets[0].includes('AUSPEX Briefing view'));
+    assert.ok(data.changelog[0].bullets[0].includes('content-ideation'));
     assert.match(data.lastmod.chokepoints, /^\d{4}-\d{2}-\d{2}$/);
   });
 });
