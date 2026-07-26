@@ -7,6 +7,7 @@
 import { joinSafeHtml, safeHtml, safeUrlAttr, type SafeHtml } from '@/utils/sanitize';
 import { setTrustedHtml, trustedHtml } from '@/utils/dom-utils';
 import { effectivePubDateMs } from '@/services/feed-date';
+import { ensureWmSession, installWmSessionFetchInterceptor } from '@/services/wm-session';
 import {
   buildBriefing,
   generateAngleForCluster,
@@ -108,6 +109,15 @@ async function generateAnglesSequentially(clusters: BriefingCluster[], angleLimi
 async function loadBriefing(): Promise<void> {
   setStatus('Loading feeds…');
   try {
+    // The Briefing boots standalone (see main.ts) and deliberately never
+    // constructs App, so it also never runs App.init()'s normal bootstrap of
+    // the anonymous wm-session cookie every /api/* call requires (server's
+    // validateApiKey() has no origin/referer-based bypass — see
+    // api/_api-key.js). Without this, every rss-proxy request 401s and the
+    // Briefing silently shows "no stories" forever, including on refresh.
+    installWmSessionFetchInterceptor();
+    await ensureWmSession();
+
     const { clusters, angleLimit } = await buildBriefing();
     setStatus(clusters.length > 0
       ? `${clusters.length} clustered ${clusters.length === 1 ? 'story' : 'stories'} — generating angles for the top ${Math.min(angleLimit, clusters.length)}…`

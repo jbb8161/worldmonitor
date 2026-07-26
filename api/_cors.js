@@ -5,6 +5,16 @@ const ALLOWED_ORIGIN_PATTERNS = [
   //   worldmonitor-<hash>-eliewm.vercel.app        (deployment URL)
   // Tight on purpose: never a bare *.vercel.app (this is a security allowlist).
   /^https:\/\/worldmonitor-[a-z0-9-]+-eliewm\.vercel\.app$/,
+  // AUSPEX standalone Vercel deployment (self-hosted variant, not part of the
+  // worldmonitor.app multi-tenant deployment — see SELF_HOSTING.md). Matches
+  // the production alias (auspex-dash.vercel.app) and any preview/branch
+  // deployment under that same project (auspex-dash-<hash-or-branch>[-scope].
+  // vercel.app). Without this, every unsafe-method request the app itself
+  // makes (POST /api/wm-session to mint the anonymous session cookie,
+  // sebuf RPC POSTs) sends an Origin header the allowlist didn't recognize
+  // and got 403'd — GET requests don't carry Origin same-origin, so this
+  // silently broke only POST-driven bootstrap/RPC calls, not simple fetches.
+  /^https:\/\/auspex-dash(?:-[a-z0-9-]+)?\.vercel\.app$/,
   /^https?:\/\/tauri\.localhost(:\d+)?$/,
   /^https?:\/\/[a-z0-9-]+\.tauri\.localhost(:\d+)?$/i,
   /^tauri:\/\/localhost$/,

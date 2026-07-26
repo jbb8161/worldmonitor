@@ -12,6 +12,11 @@ const PRODUCTION_PATTERNS: RegExp[] = [
   //   worldmonitor-<hash>-eliewm.vercel.app        (deployment URL)
   // Tight on purpose: never a bare *.vercel.app (this is a security allowlist).
   /^https:\/\/worldmonitor-[a-z0-9-]+-eliewm\.vercel\.app$/,
+  // AUSPEX standalone Vercel deployment — see api/_cors.js's matching entry
+  // for the full rationale. Same allowlist gap here blocks the sebuf RPC
+  // POSTs (e.g. summarize-article, used by the AUSPEX Briefing's AI angle
+  // generation) the same way it blocked the wm-session mint over in api/_cors.js.
+  /^https:\/\/auspex-dash(?:-[a-z0-9-]+)?\.vercel\.app$/,
   /^https?:\/\/tauri\.localhost(:\d+)?$/,
   /^https?:\/\/[a-z0-9-]+\.tauri\.localhost(:\d+)?$/i,
   /^tauri:\/\/localhost$/,
