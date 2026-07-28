@@ -31,8 +31,8 @@ const GLOBAL_RATE_WINDOW_SECONDS = durationToSeconds(GLOBAL_RATE_WINDOW);
 
 function getRatelimit(): Ratelimit | null {
   if (ratelimit) return ratelimit;
-  const url = process.env.UPSTASH_REDIS_REST_URL;
-  const token = process.env.UPSTASH_REDIS_REST_TOKEN;
+  const url = process.env.UPSTASH_REDIS_REST_URL?.trim();
+  const token = process.env.UPSTASH_REDIS_REST_TOKEN?.trim();
   if (!url || !token) return null;
 
   ratelimit = new Ratelimit({
@@ -366,8 +366,8 @@ function getEndpointRatelimit(pathname: string): Ratelimit | null {
   const cached = endpointLimiters.get(pathname);
   if (cached) return cached;
 
-  const url = process.env.UPSTASH_REDIS_REST_URL;
-  const token = process.env.UPSTASH_REDIS_REST_TOKEN;
+  const url = process.env.UPSTASH_REDIS_REST_URL?.trim();
+  const token = process.env.UPSTASH_REDIS_REST_TOKEN?.trim();
   if (!url || !token) return null;
 
   const rl = new Ratelimit({
@@ -440,8 +440,8 @@ function getScopedRatelimit(scope: string, limit: number, window: Duration): Rat
   const cached = scopedLimiters.get(cacheKey);
   if (cached) return cached;
 
-  const url = process.env.UPSTASH_REDIS_REST_URL;
-  const token = process.env.UPSTASH_REDIS_REST_TOKEN;
+  const url = process.env.UPSTASH_REDIS_REST_URL?.trim();
+  const token = process.env.UPSTASH_REDIS_REST_TOKEN?.trim();
   if (!url || !token) return null;
 
   const rl = new Ratelimit({
