@@ -7,7 +7,13 @@
 import { joinSafeHtml, safeHtml, safeUrlAttr, type SafeHtml } from '@/utils/sanitize';
 import { setTrustedHtml, trustedHtml } from '@/utils/dom-utils';
 import { effectivePubDateMs } from '@/services/feed-date';
-import { ensureWmSession, installWmSessionFetchInterceptor } from '@/services/wm-session';
+import {
+  ensureWmSession,
+  installWmSessionFetchInterceptor,
+  getLastWmSessionDebugInfo,
+  resetWmSessionDebugInfo,
+} from '@/services/wm-session';
+import { getFirstFailedRssProxyDebugInfo, resetRssProxyDebugInfo } from '@/services/rss';
 import {
   buildBriefing,
   generateAngleForCluster,
@@ -83,11 +89,57 @@ function setStatus(message: string): void {
   if (el) el.textContent = message;
 }
 
+// ============================================================================
+// TEMP DEBUG — added to diagnose the AUSPEX Briefing "No stories found"
+// failure (branch fix/auspex-briefing-wm-session). Renders the real HTTP
+// status/body captured by wm-session.ts / rss.ts directly on the page
+// instead of the generic "Feeds may be unreachable" message, so the failure
+// is visible without digging through Vercel Runtime Logs. STRIP THIS
+// FUNCTION and its two call sites below (in renderList and loadBriefing's
+// catch block) out once the Briefing failure is root-caused and confirmed
+// fixed — search "TEMP DEBUG" repo-wide for the rest of this instrumentation.
+// ============================================================================
+function renderTempDebugBlock(outerError?: unknown): SafeHtml {
+  const session = getLastWmSessionDebugInfo();
+  const rss = getFirstFailedRssProxyDebugInfo();
+
+  const outerErrorRow = outerError
+    ? safeHtml`<div class="briefing-debug-row"><strong>buildBriefing() threw:</strong><pre>${outerError instanceof Error ? `${outerError.name}: ${outerError.message}\n${outerError.stack ?? ''}` : String(outerError)}</pre></div>`
+    : safeHtml``;
+
+  const sessionRow = session
+    ? safeHtml`<div class="briefing-debug-row">
+        <strong>wm-session — POST ${session.url}</strong><br />
+        status: ${session.status === null ? 'no response (network/CORS error)' : `${session.status} ${session.statusText}`}
+        ${session.error ? safeHtml`<br />error: ${session.error}` : safeHtml``}
+        <pre>${session.body || '(empty body)'}</pre>
+      </div>`
+    : safeHtml`<div class="briefing-debug-row"><strong>wm-session</strong> — no call made this load (session cookie was already fresh)</div>`;
+
+  const rssRow = rss
+    ? safeHtml`<div class="briefing-debug-row">
+        <strong>rss-proxy — ${rss.feedName} → ${rss.requestedUrl}</strong><br />
+        status: ${rss.status === null ? 'no response (network/CORS error)' : `${rss.status} ${rss.statusText}`}
+        ${rss.error ? safeHtml`<br />error: ${rss.error}` : safeHtml``}
+        <pre>${rss.body || '(empty body)'}</pre>
+      </div>`
+    : safeHtml`<div class="briefing-debug-row"><strong>rss-proxy</strong> — no feed fetch failed</div>`;
+
+  return safeHtml`<div class="briefing-debug-block">
+    <p class="briefing-debug-label">⚠ TEMPORARY DEBUG OUTPUT — remove once the Briefing failure is root-caused</p>
+    ${outerErrorRow}
+    ${sessionRow}
+    ${rssRow}
+  </div>`;
+}
+// END TEMP DEBUG helper.
+
 function renderList(clusters: BriefingCluster[]): void {
   const listEl = document.getElementById('briefingList');
   if (!listEl) return;
   if (clusters.length === 0) {
-    setTrustedHtml(listEl, trustedHtml('<p class="briefing-empty">No stories found. Feeds may be unreachable — try refreshing.</p>', 'briefing empty state, static string'));
+    const empty = safeHtml`<p class="briefing-empty">No stories found. Feeds may be unreachable — try refreshing.</p>${renderTempDebugBlock()}`;
+    setTrustedHtml(listEl, trustedHtml(empty.toString(), 'briefing empty state — content pre-escaped via safeHtml'));
     return;
   }
   const cards = joinSafeHtml(clusters.map((cluster, i) => renderCard(cluster, i + 1)));
@@ -108,6 +160,11 @@ async function generateAnglesSequentially(clusters: BriefingCluster[], angleLimi
 
 async function loadBriefing(): Promise<void> {
   setStatus('Loading feeds…');
+  // TEMP DEBUG — clear any debug info from a previous load/refresh so the
+  // block below always reflects THIS attempt, not a stale prior failure.
+  // See renderTempDebugBlock() for the strip-out plan.
+  resetWmSessionDebugInfo();
+  resetRssProxyDebugInfo();
   try {
     // The Briefing boots standalone (see main.ts) and deliberately never
     // constructs App, so it also never runs App.init()'s normal bootstrap of
@@ -128,6 +185,12 @@ async function loadBriefing(): Promise<void> {
   } catch (err) {
     console.error('[Briefing] Failed to load:', err);
     setStatus('Failed to load the briefing. Try refreshing.');
+    // TEMP DEBUG — buildBriefing() threw outright (not just zero clusters);
+    // show the same debug block plus the thrown error itself.
+    const listEl = document.getElementById('briefingList');
+    if (listEl) {
+      setTrustedHtml(listEl, trustedHtml(renderTempDebugBlock(err).toString(), 'briefing debug block — content pre-escaped via safeHtml'));
+    }
   }
 }
 

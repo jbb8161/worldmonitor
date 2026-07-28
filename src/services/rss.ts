@@ -1,6 +1,6 @@
 import type { Feed, NewsItem } from '@/types';
 import { SITE_VARIANT } from '@/config';
-import { chunkArray, fetchWithProxy, isMobileDevice } from '@/utils';
+import { chunkArray, fetchWithProxy, isMobileDevice, proxyUrl } from '@/utils';
 import { classifyByKeyword, classifyWithAI } from './threat-classifier';
 import { inferGeoHubsFromTitle } from './geo-hub-index';
 import { getPersistentCache, setPersistentCache } from './persistent-cache';
@@ -22,6 +22,32 @@ const feedFailures = new Map<string, { count: number; cooldownUntil: number }>()
 const feedCache = new Map<string, { items: NewsItem[]; timestamp: number }>();
 const CACHE_TTL = 30 * 60 * 1000;
 const enqueueFeedParse = createYieldingWorkQueue(yieldToMain);
+
+// ============================================================================
+// TEMP DEBUG — added to diagnose the AUSPEX Briefing "No stories found"
+// failure (branch fix/auspex-briefing-wm-session). Records the real HTTP
+// status/body (or thrown error) of the FIRST feed fetch that fails per
+// resetRssProxyDebugInfo() call, so briefing-window.ts can show the actual
+// rss-proxy failure directly on the page. STRIP THIS BLOCK (and its two
+// capture sites in fetchFeed below) out once the Briefing failure is
+// root-caused — search "TEMP DEBUG" repo-wide.
+export interface RssProxyDebugInfo {
+  feedName: string;
+  requestedUrl: string;
+  status: number | null;
+  statusText: string;
+  body: string;
+  error: string | null;
+}
+let firstFailedRssDebugInfo: RssProxyDebugInfo | null = null;
+export function getFirstFailedRssProxyDebugInfo(): RssProxyDebugInfo | null {
+  return firstFailedRssDebugInfo;
+}
+export function resetRssProxyDebugInfo(): void {
+  firstFailedRssDebugInfo = null;
+}
+// END TEMP DEBUG block header — capture sites are in fetchFeed() below.
+// ============================================================================
 
 function parseFeedXml(text: string, isMobile: boolean): Promise<Document> {
   // Desktop keeps its established concurrent feed path. The queue is only a
@@ -237,8 +263,12 @@ export async function fetchFeed(feed: Feed): Promise<NewsItem[]> {
     return cached.items;
   }
 
+  // TEMP DEBUG: hoisted out of the try block so the catch handler below can
+  // still report which URL it was trying when a fetch throws before a
+  // Response ever comes back (network/CORS failure).
+  let url: string | undefined;
   try {
-    let url = typeof feed.url === 'string' ? feed.url : feed.url.en;
+    url = typeof feed.url === 'string' ? feed.url : feed.url.en;
     if (typeof feed.url !== 'string') {
       url = feed.url[currentLang] || feed.url.en || Object.values(feed.url)[0] || '';
     }
@@ -246,7 +276,21 @@ export async function fetchFeed(feed: Feed): Promise<NewsItem[]> {
     if (!url) throw new Error(`No URL found for feed ${feed.name}`);
 
     const response = await fetchWithProxy(url);
-    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    if (!response.ok) {
+      // TEMP DEBUG — see block comment above fetchFeed for the strip-out plan.
+      if (!firstFailedRssDebugInfo) {
+        const bodyText = await response.clone().text().catch(() => '');
+        firstFailedRssDebugInfo = {
+          feedName: feed.name,
+          requestedUrl: proxyUrl(url),
+          status: response.status,
+          statusText: response.statusText,
+          body: bodyText,
+          error: null,
+        };
+      }
+      throw new Error(`HTTP ${response.status}`);
+    }
     const text = await response.text();
     const isMobile = isMobileDevice();
     const doc = await parseFeedXml(text, isMobile);
@@ -359,6 +403,19 @@ export async function fetchFeed(feed: Feed): Promise<NewsItem[]> {
     return parsed;
   } catch (e) {
     console.error(`Failed to fetch ${feed.name}:`, e);
+    // TEMP DEBUG — covers throws with no Response (network/CORS/timeout);
+    // the `!response.ok` branch above already handled the has-a-Response
+    // case and this guard leaves that capture untouched.
+    if (!firstFailedRssDebugInfo) {
+      firstFailedRssDebugInfo = {
+        feedName: feed.name,
+        requestedUrl: url ? proxyUrl(url) : '(url resolution failed)',
+        status: null,
+        statusText: '',
+        body: '',
+        error: e instanceof Error ? `${e.name}: ${e.message}` : String(e),
+      };
+    }
     recordFeedFailure(feedScope);
     const persistent = await loadPersistentFeed(feedScope);
     return cached?.items || persistent || [];

@@ -39,6 +39,30 @@ interface StoredSession {
   exp: number;
 }
 
+// ============================================================================
+// TEMP DEBUG — added to diagnose the AUSPEX Briefing "No stories found"
+// failure (branch fix/auspex-briefing-wm-session). Records the real HTTP
+// status/body of the most recent /api/wm-session call so briefing-window.ts
+// can show it directly on the page instead of a generic message. STRIP THIS
+// BLOCK (and its two call sites in fetchNewSession below) out once the
+// Briefing failure is root-caused — search "TEMP DEBUG" repo-wide.
+export interface WmSessionDebugInfo {
+  url: string;
+  status: number | null;
+  statusText: string;
+  body: string;
+  error: string | null;
+}
+let lastSessionDebugInfo: WmSessionDebugInfo | null = null;
+export function getLastWmSessionDebugInfo(): WmSessionDebugInfo | null {
+  return lastSessionDebugInfo;
+}
+export function resetWmSessionDebugInfo(): void {
+  lastSessionDebugInfo = null;
+}
+// END TEMP DEBUG block header — capture sites are in fetchNewSession() below.
+// ============================================================================
+
 let cached: StoredSession | null = null;
 let inflight: Promise<boolean> | null = null;
 let recoveryInFlight: Promise<Response | null> | null = null;
@@ -108,20 +132,34 @@ function saveToStorage(s: StoredSession): void {
 }
 
 async function fetchNewSession(body?: { widgetKey?: string; proKey?: string }): Promise<StoredSession | null> {
+  const requestUrl = toApiUrl('/api/wm-session');
   try {
     const fetchImpl = nativeSessionFetch ?? globalThis.fetch;
-    const resp = await fetchImpl(toApiUrl('/api/wm-session'), {
+    const resp = await fetchImpl(requestUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       credentials: 'include',
       body: body ? JSON.stringify(body) : undefined,
       signal: AbortSignal.timeout(fetchNewSessionTimeoutMs),
     });
+    // TEMP DEBUG — capture the real status/body before consuming the stream.
+    // See the block comment above `cached` for the strip-out plan.
+    const bodyText = await resp.clone().text().catch(() => '');
+    lastSessionDebugInfo = { url: requestUrl, status: resp.status, statusText: resp.statusText, body: bodyText, error: null };
     if (!resp.ok) return null;
-    const data = await resp.json() as { exp?: unknown };
+    const data = JSON.parse(bodyText) as { exp?: unknown };
     if (typeof data?.exp !== 'number') return null;
     return { exp: data.exp };
-  } catch {
+  } catch (err) {
+    // TEMP DEBUG — network/CORS/timeout failures never produce a Response,
+    // so this is the only place that sees the real error for those cases.
+    lastSessionDebugInfo = {
+      url: requestUrl,
+      status: null,
+      statusText: '',
+      body: '',
+      error: err instanceof Error ? `${err.name}: ${err.message}` : String(err),
+    };
     return null;
   }
 }
@@ -190,6 +228,7 @@ export function __resetWmSessionForTests(): void {
   sessionDeadUntil = 0;
   sentryEnqueue = enqueueSentryCall;
   fetchNewSessionTimeoutMs = 10_000;
+  lastSessionDebugInfo = null; // TEMP DEBUG
 }
 
 // Test-only: shrink the mint timeout so adversarial repros for hung fetches
