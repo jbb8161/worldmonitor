@@ -131,6 +131,24 @@
   word-break: break-word;
 }
 
+/* TEMP DEBUG — compact variant of .briefing-debug-block for inline use inside
+   a card's angle section (renderAngleDebugBlock in briefing-window.ts), where
+   the full-width padding/margins above are too heavy for a per-card block. */
+.briefing-debug-block-inline {
+  margin-top: 8px;
+  padding: 10px 12px;
+  font-size: 11px;
+}
+
+.briefing-debug-inline-note {
+  margin: 8px 0 0;
+  padding: 6px 10px;
+  border: 1px dashed #e05252;
+  border-radius: 6px;
+  font-size: 11px;
+  color: #e05252;
+}
+
 .briefing-list {
   display: flex;
   flex-direction: column;

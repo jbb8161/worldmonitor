@@ -17,6 +17,8 @@ import { getFirstFailedRssProxyDebugInfo, resetRssProxyDebugInfo } from '@/servi
 import {
   buildBriefing,
   generateAngleForCluster,
+  getAngleDebugInfo,
+  resetAngleDebugInfo,
   type BriefingCluster,
 } from '@/services/auspex-briefing';
 
@@ -33,6 +35,49 @@ function formatTimeAgo(epochMs: number): string {
   return `${days}d ago`;
 }
 
+// ============================================================================
+// TEMP DEBUG — added to diagnose "No content angle available." showing for
+// every cluster on the AUSPEX Briefing. Renders the real per-provider outcome
+// captured by auspex-briefing.ts's tryAngleProvider/generateAngleForCluster
+// (status, error, exception, or the browser-T5 fallback's mlWorker.isAvailable
+// check) directly under the generic unavailable message. STRIP THIS FUNCTION
+// and its one call site below (in renderAngleBody) out once the
+// angle-generation failure is root-caused — search "TEMP DEBUG" repo-wide for
+// the rest of this instrumentation.
+function renderAngleDebugBlock(clusterId: string): SafeHtml {
+  const debug = getAngleDebugInfo(clusterId);
+  if (!debug) return safeHtml`<p class="briefing-debug-inline-note">TEMP DEBUG: generateAngleForCluster() was never called for this cluster.</p>`;
+
+  const attemptRows = debug.attempts.map((a) => {
+    const statusLine = a.status ? `${a.outcome} (${a.status})` : a.outcome;
+    const errorLine = a.error ? (a.errorType ? `${a.errorType}: ${a.error}` : a.error) : '';
+    const exceptionLine = a.exceptionMessage
+      ? (a.httpStatus ? `${a.exceptionMessage} (HTTP ${a.httpStatus})` : a.exceptionMessage)
+      : '';
+    return safeHtml`<div class="briefing-debug-row">
+        <strong>${a.provider}</strong> — ${statusLine}
+        ${a.statusDetail ? safeHtml`<br />detail: ${a.statusDetail}` : safeHtml``}
+        ${errorLine ? safeHtml`<br />error: ${errorLine}` : safeHtml``}
+        ${exceptionLine ? safeHtml`<br />exception: ${exceptionLine}` : safeHtml``}
+      </div>`;
+  });
+
+  const t5 = debug.browserT5;
+  const t5Row = t5
+    ? safeHtml`<div class="briefing-debug-row">
+        <strong>browser-T5 fallback</strong> — mlWorker.isAvailable=${String(t5.mlWorkerAvailable)}, outcome: ${t5.outcome}
+        ${t5.exceptionMessage ? safeHtml`<br />exception: ${t5.exceptionMessage}` : safeHtml``}
+      </div>`
+    : safeHtml`<div class="briefing-debug-row"><strong>browser-T5 fallback</strong> — not reached (a server provider succeeded, or this cluster hasn't finished yet)</div>`;
+
+  return safeHtml`<div class="briefing-debug-block briefing-debug-block-inline">
+    <p class="briefing-debug-label">⚠ TEMP DEBUG — angle generation attempts</p>
+    ${joinSafeHtml(attemptRows)}
+    ${t5Row}
+  </div>`;
+}
+// END TEMP DEBUG helper.
+
 function renderAngleBody(cluster: BriefingCluster): SafeHtml {
   if (cluster.angleStatus === 'ready' && cluster.angle) {
     return safeHtml`<p class="briefing-card-angle-text">${cluster.angle}</p>`;
@@ -41,7 +86,7 @@ function renderAngleBody(cluster: BriefingCluster): SafeHtml {
     return safeHtml`<p class="briefing-card-angle-pending">Generating content angle…</p>`;
   }
   if (cluster.angleStatus === 'unavailable') {
-    return safeHtml`<p class="briefing-card-angle-pending">No content angle available.</p>`;
+    return safeHtml`<p class="briefing-card-angle-pending">No content angle available.</p>${renderAngleDebugBlock(cluster.id)}`;
   }
   return safeHtml``;
 }
@@ -165,6 +210,7 @@ async function loadBriefing(): Promise<void> {
   // See renderTempDebugBlock() for the strip-out plan.
   resetWmSessionDebugInfo();
   resetRssProxyDebugInfo();
+  resetAngleDebugInfo();
   try {
     // The Briefing boots standalone (see main.ts) and deliberately never
     // constructs App, so it also never runs App.init()'s normal bootstrap of
