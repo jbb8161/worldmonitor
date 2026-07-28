@@ -115,6 +115,43 @@ describe('isAllowedOrigin — Vercel preview allowlist (eliewm team scope)', () 
   }
 });
 
+// AUSPEX's standalone Vercel deployment (self-hosted variant — see
+// SELF_HOSTING.md) is a separate project from the worldmonitor.app
+// multi-tenant one, so it needed its own allowlist entry: browsers send
+// Origin on the POST to /api/wm-session (the anonymous session-cookie mint)
+// and on sebuf RPC POSTs, and a narrow allowlist 403s those before the
+// dashboard can ever fetch a single story.
+describe('isAllowedOrigin — AUSPEX standalone Vercel deployment', () => {
+  const allowedByJsTwin = (origin: string) =>
+    !isDisallowedOriginJs(new Request('https://worldmonitor.app/x', { headers: { Origin: origin } }));
+
+  const ALLOWED = [
+    ['production alias', 'https://auspex-dash.vercel.app'],
+    ['hash deployment URL', 'https://auspex-dash-abc123def456.vercel.app'],
+    ['git-branch alias URL, team-scoped', 'https://auspex-dash-git-feature-auspex1.vercel.app'],
+  ];
+
+  const REJECTED = [
+    ['unrelated vercel.app origin', 'https://some-other-app.vercel.app'],
+    ['suffix-spoofed auspex-dash origin', 'https://auspex-dash.vercel.app.evil.com'],
+    ['prefix lookalike, not a hyphen boundary', 'https://auspex-dashboard.vercel.app'],
+  ];
+
+  for (const [label, origin] of ALLOWED) {
+    it(`allows ${label}`, () => {
+      assert.equal(isAllowedOrigin(origin), true, `server/cors.ts must allow ${origin}`);
+      assert.equal(allowedByJsTwin(origin), true, `api/_cors.js must allow ${origin}`);
+    });
+  }
+
+  for (const [label, origin] of REJECTED) {
+    it(`rejects ${label}`, () => {
+      assert.equal(isAllowedOrigin(origin), false, `server/cors.ts must reject ${origin}`);
+      assert.equal(allowedByJsTwin(origin), false, `api/_cors.js must reject ${origin}`);
+    });
+  }
+});
+
 describe('CORS triplet parity — eliewm preview pattern stays tight in all three twins', () => {
   // Root cause of the original 403s was twins drifting. THREE surfaces gate
   // Vercel-preview CORS and must move together; guard each for:

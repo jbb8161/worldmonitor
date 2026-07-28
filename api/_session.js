@@ -19,6 +19,16 @@ const SESSION_TTL_MS = 12 * 60 * 60 * 1000;
 const PREFIX = 'wms_';
 const enc = new TextEncoder();
 
+// WM_SESSION_SECRET — single-purpose, no aliases; this is the only place
+// that reads it. Required, min 32 chars (generate: `openssl rand -hex 32`).
+// Every environment that serves POST /api/wm-session needs its own copy —
+// Vercel env vars aren't shared across projects, so a standalone deploy
+// (e.g. a self-hosted AUSPEX variant on its own Vercel project) doesn't
+// inherit it from any other project. Missing or too short: this throws,
+// issueSessionToken() propagates the throw, and wm-session.js's catch
+// turns it into `503 {"error":"Session service not configured"}` — which
+// silently breaks every anonymous browser request behind the session
+// cookie (rss-proxy included), not just this endpoint.
 function getSecret() {
   const s = process.env.WM_SESSION_SECRET;
   if (!s || s.length < 32) {

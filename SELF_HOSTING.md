@@ -269,6 +269,24 @@ to your own Vercel project:
    only matters if you're pushing to `main` on the same Vercel project as
    another variant; a fresh branch/project with web-relevant changes always
    builds.
+5. **Set the server secrets below.** A standalone AUSPEX deploy is its own
+   Vercel project, so it does **not** inherit any environment variables
+   from the main `worldmonitor.app` project even if you have one — each of
+   these has to be added here independently (Vercel → Project → Settings →
+   Environment Variables, scoped to at least Preview + Production):
+
+   | Variable | Required | Description |
+   | --- | --- | --- |
+   | `WM_SESSION_SECRET` | **Yes** | Signs the anonymous `wm-session` cookie every browser request needs (`api/_session.js`). Min 32 chars, or `issueSessionToken()` throws and `POST /api/wm-session` returns `503 {"error":"Session service not configured"}` — which fails the Briefing view and every other page silently, since nothing behind the session ever gets a valid cookie. Generate: `openssl rand -hex 32`. |
+   | `UPSTASH_REDIS_REST_URL` | **Yes** | Upstash Redis REST endpoint. Create a free database at [upstash.com](https://upstash.com/). Without this (and the token below), `checkRateLimit`'s fail-closed endpoints — including `/api/wm-session` — return a `503` degraded response instead of ever reaching the session/RSS logic. |
+   | `UPSTASH_REDIS_REST_TOKEN` | **Yes** | Paired with `UPSTASH_REDIS_REST_URL` above. Paste it exactly as Upstash shows it — a stray trailing newline or quote from a copy-paste (common when pasting into Vercel's UI) makes every Redis call throw `Invalid header value`, which looks like a totally different failure. |
+   | `WIDGET_AGENT_KEY` | Only if using the embeddable widget agent | Authenticates the widget agent backend call (`api/widget-agent.ts`). |
+   | `PRO_WIDGET_KEY` | Only if gating Pro widget access | Also consumed by `api/widget-agent.ts`; gates the Pro tier of the embeddable widget. |
+
+   **Env var names are case-sensitive and must match exactly** — same
+   caveat as the passfort variables below: a typo'd name is accepted
+   silently by Vercel and just leaves the feature it backs broken with no
+   error pointing at the cause.
 
 Verified locally: `npm run build:auspex` succeeds end to end (security
 scan, OpenAPI generation, agent-skills build, typecheck, `vite build`) and
