@@ -14,6 +14,8 @@ import { fetchCategoryFeeds } from '@/services/rss';
 import { generateSummary, newsClient, API_PROVIDERS } from '@/services/summarization';
 import { isFeatureAvailable } from '@/services/runtime-config';
 import { getCurrentLanguage } from '@/services/i18n';
+import { getRpcErrorStatusCode } from '@/services/rpc-client';
+import { mlWorker } from '@/services/ml-worker';
 import {
   buildClusters,
   rankClusters,
@@ -22,6 +24,59 @@ import {
 } from '@/services/auspex-briefing-rank';
 
 export type { BriefingCluster } from '@/services/auspex-briefing-rank';
+
+// ============================================================================
+// TEMP DEBUG — added to diagnose "No content angle available." showing for
+// every cluster on the AUSPEX Briefing. Records the real outcome of each
+// provider attempt (ollama/openrouter/groq, dispatched via the
+// SummarizeArticle RPC) plus the final browser-T5 fallback, per cluster, so
+// briefing-window.ts can render it instead of the generic unavailable text.
+// STRIP THIS BLOCK (and its two capture sites in tryAngleProvider /
+// generateAngleForCluster below) out once the angle-generation failure is
+// root-caused — search "TEMP DEBUG" repo-wide for the rest of this
+// instrumentation.
+export interface AngleProviderAttemptDebug {
+  provider: string;
+  outcome: 'skipped' | 'success' | 'server_error' | 'exception';
+  status?: string;
+  statusDetail?: string;
+  error?: string;
+  errorType?: string;
+  exceptionMessage?: string;
+  httpStatus?: number;
+}
+export interface AngleBrowserT5Debug {
+  mlWorkerAvailable: boolean;
+  outcome: 'success' | 'null' | 'exception';
+  exceptionMessage?: string;
+}
+export interface AngleClusterDebug {
+  attempts: AngleProviderAttemptDebug[];
+  browserT5: AngleBrowserT5Debug | null;
+}
+const angleDebugByCluster = new Map<string, AngleClusterDebug>();
+export function getAngleDebugInfo(clusterId: string): AngleClusterDebug | null {
+  return angleDebugByCluster.get(clusterId) ?? null;
+}
+export function resetAngleDebugInfo(): void {
+  angleDebugByCluster.clear();
+}
+function angleDebugEntry(clusterId: string): AngleClusterDebug {
+  let entry = angleDebugByCluster.get(clusterId);
+  if (!entry) {
+    entry = { attempts: [], browserT5: null };
+    angleDebugByCluster.set(clusterId, entry);
+  }
+  return entry;
+}
+function recordAngleAttempt(clusterId: string, attempt: AngleProviderAttemptDebug): void {
+  angleDebugEntry(clusterId).attempts.push(attempt);
+}
+function recordBrowserT5Debug(clusterId: string, info: AngleBrowserT5Debug): void {
+  angleDebugEntry(clusterId).browserT5 = info;
+}
+// END TEMP DEBUG block header.
+// ============================================================================
 
 async function fetchBriefingItems(): Promise<Array<{ item: NewsItem; category: AuspexBriefingCategory }>> {
   const results = await Promise.all(
@@ -58,7 +113,7 @@ const CONTENT_ANGLE_INSTRUCTION =
 // that file), so this dispatches straight to the RPC via the same ungated
 // `newsClient` translateText() uses, instead of going through
 // tryApiProvider() and tripping the unrelated client-side gate.
-async function tryAngleProvider(provider: (typeof API_PROVIDERS)[number]['provider'], headlines: string[], lang: string): Promise<string | null> {
+async function tryAngleProvider(provider: (typeof API_PROVIDERS)[number]['provider'], headlines: string[], lang: string, clusterId: string): Promise<string | null> {
   try {
     const resp = await newsClient.summarizeArticle({
       provider,
@@ -70,11 +125,44 @@ async function tryAngleProvider(provider: (typeof API_PROVIDERS)[number]['provid
       systemAppend: '',
       bodies: [],
     });
-    if (resp.fallback || resp.status === 'SUMMARIZE_STATUS_SKIPPED') return null;
+    if (resp.fallback || resp.status === 'SUMMARIZE_STATUS_SKIPPED') {
+      // TEMP DEBUG — see block comment above for the strip-out plan. This is
+      // the branch that previously discarded resp.error/errorType/statusDetail
+      // for BOTH a deliberate skip (no credentials) and a genuine upstream
+      // failure (summarize-article.ts's catch sets fallback:true either way).
+      recordAngleAttempt(clusterId, {
+        provider,
+        outcome: resp.status === 'SUMMARIZE_STATUS_SKIPPED' ? 'skipped' : 'server_error',
+        status: resp.status,
+        statusDetail: resp.statusDetail,
+        error: resp.error,
+        errorType: resp.errorType,
+      });
+      return null;
+    }
     const summary = typeof resp.summary === 'string' ? resp.summary.trim() : '';
+    // TEMP DEBUG
+    recordAngleAttempt(clusterId, {
+      provider,
+      outcome: summary ? 'success' : 'server_error',
+      status: resp.status,
+      statusDetail: resp.statusDetail,
+      error: resp.error,
+      errorType: resp.errorType,
+    });
     return summary || null;
   } catch (err) {
     console.warn(`[Briefing] Angle provider "${provider}" failed:`, err);
+    // TEMP DEBUG — covers a thrown RPC error (transport failure, non-2xx
+    // response the client library rejects on, etc.) rather than an in-band
+    // SummarizeArticleResponse. getRpcErrorStatusCode() surfaces the real
+    // HTTP status when the client attached one.
+    recordAngleAttempt(clusterId, {
+      provider,
+      outcome: 'exception',
+      exceptionMessage: err instanceof Error ? `${err.name}: ${err.message}` : String(err),
+      httpStatus: getRpcErrorStatusCode(err),
+    });
     return null;
   }
 }
@@ -86,7 +174,7 @@ export async function generateAngleForCluster(cluster: BriefingCluster): Promise
 
   for (const providerDef of API_PROVIDERS) {
     if (!isFeatureAvailable(providerDef.featureId)) continue;
-    const angle = await tryAngleProvider(providerDef.provider, headlines, lang);
+    const angle = await tryAngleProvider(providerDef.provider, headlines, lang, cluster.id);
     if (angle) return angle;
   }
 
@@ -95,11 +183,20 @@ export async function generateAngleForCluster(cluster: BriefingCluster): Promise
   // shared browser-T5 path so the feature still returns something instead of
   // nothing. skipCloudProviders avoids redundantly re-trying the providers
   // just attempted above through the (differently-gated) generateSummary().
+  const mlWorkerAvailable = mlWorker.isAvailable; // TEMP DEBUG
   try {
     const result = await generateSummary(headlines, undefined, CONTENT_ANGLE_INSTRUCTION, lang, { skipCloudProviders: true });
+    // TEMP DEBUG
+    recordBrowserT5Debug(cluster.id, { mlWorkerAvailable, outcome: result?.summary ? 'success' : 'null' });
     return result?.summary?.trim() || null;
   } catch (err) {
     console.warn('[Briefing] Browser-T5 angle fallback failed:', err);
+    // TEMP DEBUG
+    recordBrowserT5Debug(cluster.id, {
+      mlWorkerAvailable,
+      outcome: 'exception',
+      exceptionMessage: err instanceof Error ? `${err.name}: ${err.message}` : String(err),
+    });
     return null;
   }
 }
